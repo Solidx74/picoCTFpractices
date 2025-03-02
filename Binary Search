@@ -1,0 +1,27 @@
+(kali® kali)-[~]
+ssh -p 56023 ctf-player@atlas.picoctf.net 
+ctf-player@atlas.picoctf.net's password: Forums K
+Welcome to the Binary Search Game!
+I'm thinking of a number between 1 and 1000. through
+Enter your guess: 500
+Lower! Try again.
+Enter your guess: 250
+Lower! Try again.
+picoCTF
+Enter your guess: 125 Lower! Try again. Enter your guess: 63 Lower! Try again.coGym
+Enter your guess: 31
+Lower! Try again.
+Enter your guess: 15
+forensics
+help you
+tools!
+You can
+cha
+Higher! Try again.
+Enter your guess: 23Hide Solved
+Higher! Try again.
+Enter your guess: 27
+Using the
+Congratulations! You guessed the correct number: 27 Here's your flag: picoCTF{g00d_gu355_2e90d29b}
+Connection to atlas.picoctf.net closed.
+in a shell
