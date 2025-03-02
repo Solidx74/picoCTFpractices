@@ -1,0 +1,17 @@
+┌──(kali㉿kali)-[~]
+└─$ ssh -p 55294 ctf-player@atlas.picoctf.net
+The authenticity of host '[atlas.picoctf.net]:55294 ([18.217.83.136]:55294)' can't be established.
+ED25519 key fingerprint is SHA256:hVmbk/OaNT4902bBr7h26wfhmBuJWi4tub8AJqoAJCM.
+This host key is known by the following other names/addresses:
+    ~/.ssh/known_hosts:3: [hashed name]
+Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+Warning: Permanently added '[atlas.picoctf.net]:55294' (ED25519) to the list of known hosts.
+ctf-player@atlas.picoctf.net's password: 
+[HERE IT WILL SHOW THE PNG FILE]                                                                 
+ctf-player@challenge:~/drop-in$ ls
+flag.png
+ctf-player@challenge:~/drop-in$ zbarimg flag.png
+Connection Error (Failed to connect to socket /var/run/dbus/system_bus_socket: No such file or directory)
+Connection Null
+QR-Code:picoCTF{p33k_@_b00_a81f0a35}
+scanned 1 barcode symbols from 1 images in 0.01 seconds
