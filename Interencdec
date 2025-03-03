@@ -1,0 +1,21 @@
+The problem provides you a .txt file where you can get a encrypted text.
+1.At first go to terminal, then  Follow what showed below:
+┌──(kali㉿kali)-[~]
+└─$ ls                   
+Desktop  Documents  Downloads  Music  Pictures  Public  Templates  Videos                                                                                                                                                                     
+┌──(kali㉿kali)-[~]
+└─$ cd ~/Downloads                                                                                                                                                                   
+┌──(kali㉿kali)-[~/Downloads]
+└─$ ls
+enc_flag                                                                                                                                                                    
+┌──(kali㉿kali)-[~/Downloads]
+└─$ open enc_flag                                                                                                                                                                           
+┌──(kali㉿kali)-[~/Downloads]
+└─$ open enc_flag                                                                                                                                                                    
+┌──(kali㉿kali)-[~/Downloads]
+└─$ base64 -d enc_flag
+b'd3BqdkpBTXtqaGx6aHlfazNqeTl3YTNrXzg5MGsyMzc5fQ=='
+2. Here as u can see we got a decrypted text. Copy this and go to < https://www.base64decode.org/ > to decode it again.
+3.Here you will find something like wpjvJAM{jhlzhy_k3jy9wa3k_890k2379}.
+4. Then,let us jump into < https://www.dcode.fr/caesar-cipher > , here i searched rot13 in the search bar ,used Caesar Cipher (rot13, rot) to decode. You can use other decoding tools too.
+5. Thus you will get your flag from this decryption .Problem solved.
