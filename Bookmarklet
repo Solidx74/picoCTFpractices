@@ -1,0 +1,15 @@
+1.After launching the instance and clicking the site link, it will redirect you to a website.
+2. copy the following bookmarklet from the website :        
+javascript:(function() {
+            var encryptedFlag = "àÒÆÞ¦È¬ëÙ£ÖÓÚåÛÑ¢ÕÓÒËÉ§©í";
+            var key = "picoctf";
+            var decryptedFlag = "";
+            for (var i = 0; i < encryptedFlag.length; i++) {
+                decryptedFlag += String.fromCharCode((encryptedFlag.charCodeAt(i) - key.charCodeAt(i % key.length) + 256) % 256);
+            }
+            alert(decryptedFlag);
+        })();
+3.Inspect the website .
+4.Go to console.
+5.As we saw a hint : Web browsers have other ways to run JavaScript too. we can paste the bookmarklet that we copied earlier in console. 
+6.Then just run it . Get the key. Problem solved.
