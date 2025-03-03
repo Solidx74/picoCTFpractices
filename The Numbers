@@ -2,4 +2,4 @@ You will get a png where some numbers would be shown in front of you.
 1.At first copy those numbers and then paste it to the following site which will help you to decrypt and get the key.
 2.Site link << https://www.dcode.fr/letter-number-cipher ;
 3.Here you will get the key in a PICOCTF format.
-4.Add a '{' at the end of picoCTF and '}' at the end of the key.
+4.Add a '{' at the end of picoCTF and '}' at the end of the key.Problem solved.
