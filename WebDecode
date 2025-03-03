@@ -1,0 +1,7 @@
+1.Click the link of the problem.
+2.It will redirect you to a website .
+3.Then we changed the network proxy to manual and set HTTP proxy to 127.0.0.1 and port to 8080.
+4.Thus Burpsuite can show the activities in the target panel.
+5.After that,You can inspect all the HTML or JS code using target panel .
+6.If anything suspicious gets in your way , just send it to the Decoder.
+7.It should show the flag.Problem solved.
