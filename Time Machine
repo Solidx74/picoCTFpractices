@@ -1,0 +1,81 @@
+1.At first open the terminal. 
+2.DO the following as i did in the terminal 
+┌──(kali㉿kali)-[~]
+└─$ ls
+Desktop  Documents  Downloads  Music  Pictures  Public  Templates  Videos
+                                                                                                                                                                      
+┌──(kali㉿kali)-[~]
+└─$ cd Downloads
+                                                                                                                                                                      
+┌──(kali㉿kali)-[~/Downloads]
+└─$ ls
+challenge.zip
+                                                                                                                                                                      
+┌──(kali㉿kali)-[~/Downloads]
+└─$ unzip challenge.zip
+Archive:  challenge.zip
+   creating: drop-in/
+  inflating: drop-in/message.txt     
+   creating: drop-in/.git/
+   creating: drop-in/.git/branches/
+  inflating: drop-in/.git/description  
+   creating: drop-in/.git/hooks/
+  inflating: drop-in/.git/hooks/applypatch-msg.sample  
+  inflating: drop-in/.git/hooks/commit-msg.sample  
+  inflating: drop-in/.git/hooks/fsmonitor-watchman.sample  
+  inflating: drop-in/.git/hooks/post-update.sample  
+  inflating: drop-in/.git/hooks/pre-applypatch.sample  
+  inflating: drop-in/.git/hooks/pre-commit.sample  
+  inflating: drop-in/.git/hooks/pre-merge-commit.sample  
+  inflating: drop-in/.git/hooks/pre-push.sample  
+  inflating: drop-in/.git/hooks/pre-rebase.sample  
+  inflating: drop-in/.git/hooks/pre-receive.sample  
+  inflating: drop-in/.git/hooks/prepare-commit-msg.sample  
+  inflating: drop-in/.git/hooks/update.sample  
+   creating: drop-in/.git/info/
+  inflating: drop-in/.git/info/exclude  
+   creating: drop-in/.git/refs/
+   creating: drop-in/.git/refs/heads/
+ extracting: drop-in/.git/refs/heads/master  
+   creating: drop-in/.git/refs/tags/
+ extracting: drop-in/.git/HEAD       
+  inflating: drop-in/.git/config     
+   creating: drop-in/.git/objects/
+   creating: drop-in/.git/objects/pack/
+   creating: drop-in/.git/objects/info/
+   creating: drop-in/.git/objects/43/
+ extracting: drop-in/.git/objects/43/246218ab4fc7b30e9a9dff073e012316851469  
+   creating: drop-in/.git/objects/25/
+ extracting: drop-in/.git/objects/25/16effb8d70e33bdd0023629b164a77225e1ec2  
+   creating: drop-in/.git/objects/70/
+ extracting: drop-in/.git/objects/70/5ff639b7846418603a3272ab54536e01e3dc43  
+  inflating: drop-in/.git/index      
+ extracting: drop-in/.git/COMMIT_EDITMSG  
+   creating: drop-in/.git/logs/
+  inflating: drop-in/.git/logs/HEAD  
+   creating: drop-in/.git/logs/refs/
+   creating: drop-in/.git/logs/refs/heads/
+  inflating: drop-in/.git/logs/refs/heads/master  
+                                                                                                                                                                      
+┌──(kali㉿kali)-[~/Downloads]
+└─$ cd drop-in/ 
+                                                                                                                                                                      
+┌──(kali㉿kali)-[~/Downloads/drop-in]
+└─$ ls
+message.txt
+                                                                                                                                                                      
+┌──(kali㉿kali)-[~/Downloads/drop-in]
+└─$ cat message.txt
+This is what I was working on, but I'd need to look at my commit history to know why...                                                                                                                                                                      
+┌──(kali㉿kali)-[~/Downloads/drop-in]
+└─$ git log
+commit 705ff639b7846418603a3272ab54536e01e3dc43 (HEAD -> master)
+Author: picoCTF <ops@picoctf.com>
+Date:   Sat Mar 9 21:10:36 2024 +0000
+
+    picoCTF{t1m3m@ch1n3_b476ca06}
+
+
+3. As we read the hints, we can see we can use cat to read the files.
+4. And in Git, the log command is used to track a branch's commit history.
+5. Thus you get your flag and yah problem solved.
