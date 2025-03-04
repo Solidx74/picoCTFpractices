@@ -1,0 +1,13 @@
+1.After downloading the file, go to terminal and do such:
+┌──(kali㉿kali)-[~]
+└─$ cd Downloads                                                                                                                                                                     
+┌──(kali㉿kali)-[~/Downloads]
+└─$ ls
+enc                                                                                                                                                                      
+┌──(kali㉿kali)-[~/Downloads]
+└─$ cat enc     
+灩捯䍔䙻ㄶ形楴獟楮獴㌴摟潦弸彥ㄴㅡて㝽 
+
+2.You can see an encrypted text here. [Hints]To decrypt it,we can use various methods.
+3. So copy the encrypted text and Go to https://gchq.github.io/CyberChef/ and search Magic and enable intensive mode.
+4.Then paste the text and you can find the flag in the output.Problem solved.
