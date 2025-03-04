@@ -1,0 +1,16 @@
+1.After Downloading the zip file unzip the file by using unzip command in terminal.
+2.Then do the following so the terminal will show:
+┌──(kali㉿kali)-[~]
+└─$ cd Downloads                                                                                                                                                                    
+┌──(kali㉿kali)-[~/Downloads]
+└─$ ls
+big-zip-files  big-zip-files.zip                                                                                                                                                                  
+┌──(kali㉿kali)-[~/Downloads]
+└─$ cd big-zip-files                                                                                                                                                                
+┌──(kali㉿kali)-[~/Downloads/big-zip-files]
+└─$ grep -r pico    
+folder_pmbymkjcya/folder_cawigcwvgv/folder_ltdayfmktr/folder_fnpfclfyee/whzxrpivpqld.
+txt:information on the record will last a billion years. 
+Genes and brains and books encode picoCTF{gr3p_15_m4g1c_ef8790dc}
+3.As you can see we got the flag by using grep command properly . We used grep command for pico and it searched the text pattern in the file and we found the flag.
+Problem solved.
