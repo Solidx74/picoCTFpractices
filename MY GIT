@@ -1,0 +1,105 @@
+Step 1: Clone the Repository
+
+First, we clone the repository using the provided SSH URL:
+bash
+
+git clone ssh://git@foggy-cliff.picoctf.net:53867/git/challenge.git
+
+When prompted, enter the password: d3d09b5e
+text
+
+The authenticity of host '[foggy-cliff.picoctf.net]:53867 ([3.15.249.208]:53867)' can't be established.
+ED25519 key fingerprint is SHA256:Grm7IvZgdCDbXv3DtQ70/6WKHA2q3XhT+sfva8nLT38.
+Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+git@foggy-cliff.picoctf.net's password: d3d09b5e
+
+Step 2: Examine the Repository Contents
+
+Navigate into the cloned directory and check what's inside:
+bash
+
+cd challenge
+ls -la
+cat README.md
+
+README.md contains:
+text
+
+# MyGit
+
+### If you want the flag, make sure to push the flag!
+
+Only flag.txt pushed by ```root:root@picoctf``` will be updated with the flag.
+
+GOOD LUCK!
+
+This tells us the server has a custom hook that will only provide the flag if we push a file named flag.txt with the author specified as root:root@picoctf (which translates to name="root", email="root@picoctf").
+Step 3: Create a Placeholder Flag File
+
+Create a dummy flag.txt file to push:
+bash
+
+echo "placeholder" > flag.txt
+
+Step 4: Stage the File
+
+Add the file to Git's staging area:
+bash
+
+git add flag.txt
+
+Step 5: Check the Current Branch
+
+Determine which branch we're working with:
+bash
+
+git branch
+
+Output:
+text
+
+* master
+
+The repository uses the master branch (not main).
+Step 6: Configure Git User Identity
+
+Git requires a committer identity even when we override the author. Set local repository configuration:
+bash
+
+git config user.email "temp@example.com"
+git config user.name "temp"
+
+Step 7: Commit with the Required Author
+
+Commit the file using the --author flag to specify the exact author the server expects:
+bash
+
+git commit --author="root <root@picoctf>" -m "Add flag file"
+
+Output:
+text
+
+[master d3040fe] Add flag file
+ Author: root <root@picoctf>
+ 1 file changed, 1 insertion(+)
+ create mode 100644 flag.txt
+
+Step 8: Push to the Repository
+
+Push the commit to the remote repository on the master branch:
+bash
+
+git push origin master
+
+When prompted, enter the password again: d3d09b5e
+
+Important output:
+text
+
+remote: Author matched and flag.txt found in commit...
+remote: Congratulations! You have successfully impersonated the root user
+remote: Here's your flag: picoCTF{1mp3rs0n4t4_g17_345y_6877715a}
+To ssh://foggy-cliff.picoctf.net:53867/git/challenge.git
+   2001d2f..d3040fe  master -> master
+
+The server-side git hook detected that we pushed with the correct author and displayed the flag directly in the push output!
