@@ -1,0 +1,46 @@
+Step 1 — Analyze the source code
+
+Looking at app.py:
+
+    The program asks for ASCII decimal 101, 101, 101 side-by-side
+
+    ASCII decimal 101 = character 'e' (look at an ASCII table to confirm)
+
+    The check is: if user_input == "\x65\x65\x65"
+
+    \x65 is the hex representation of ASCII decimal 101
+
+    So \x65\x65\x65 = "eee"
+
+Therefore, the correct input is simply three 'e' characters: eee
+Step 2 — Connect to the server
+
+Open your terminal and run:
+bash
+
+nc candy-mountain.picoctf.net 65082
+
+You'll see the banner and prompt.
+Step 3 — Enter the correct input
+
+When you see:
+text
+
+Send me ASCII DECIMAL 101, 101, 101, side-by-side, no space.
+==> 
+
+Type exactly:
+text
+
+eee
+
+Then press Enter.
+Step 4 — Verify it works
+
+The program will check your input:
+
+    If correct: prints the flag from ./flag.txt
+
+    If wrong: shows "That wasn't it. I got: " with your input
+
+You should see the flag printed immediately:
