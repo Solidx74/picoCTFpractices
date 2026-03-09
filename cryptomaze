@@ -1,0 +1,118 @@
+. Parse the given data
+python
+
+# Initial state (as given)
+init_state = [
+    0,0,1,0,0,1,0,1,1,1,1,0,1,1,0,0,
+    1,0,0,1,0,1,1,0,1,0,0,1,0,1,0,1,
+    0,1,0,0,1,1,0,1,1,0,0,0,1,0,1,1,
+    1,1,0,0,0,1,0,0,0,1,0,1,1,0,1,1
+]
+
+taps = [63, 61, 60, 58]
+
+ciphertext_hex = "8f0e6d0f5b0dc1db201948b9e0cebd8f184b92a3e4793abf8dac3d9e135f39a638338e7e04fbddef0c6260a4eb758417"
+ciphertext = bytes.fromhex(ciphertext_hex)
+
+2. Define the LFSR generator
+
+We need to consider two degrees of freedom:
+
+    Shift direction – where the feedback bit is inserted:
+
+        Right shift ('right'): feedback → position 0, bits shift right, the bit at position 63 is dropped.
+
+        Left shift ('left'): feedback → position 63, bits shift left, the bit at position 0 is dropped.
+
+    Output bit – which bit becomes part of the 128‑bit sequence:
+
+        'feedback' – the newly computed feedback bit.
+
+        'dropped' – the bit that is shifted out (position 63 for right shift, position 0 for left shift).
+
+python
+
+def lfsr_generate(shift_dir, output_bit):
+    state = init_state[:]
+    bits = []
+    for _ in range(128):
+        # feedback = XOR of tap positions
+        fb = 0
+        for t in taps:
+            fb ^= state[t]
+
+        if shift_dir == 'right':
+            dropped = state[-1]
+            new_state = [fb] + state[:-1]
+        else:  # 'left'
+            dropped = state[0]
+            new_state = state[1:] + [fb]
+
+        if output_bit == 'feedback':
+            bits.append(fb)
+        else:  # 'dropped'
+            bits.append(dropped)
+
+        state = new_state
+    return bits
+
+3. Convert bits to AES key
+
+The 128 bits are grouped into 16 bytes. Within each byte, the 8 bits can be ordered most significant first (MSB first) or least significant first (LSB first). Both possibilities must be tried.
+python
+
+def bits_to_key(bits, msb_first):
+    key = bytearray()
+    for i in range(0, 128, 8):
+        byte = 0
+        for j in range(8):
+            if msb_first:
+                byte = (byte << 1) | bits[i + j]
+            else:
+                byte |= (bits[i + j] << j)
+        key.append(byte)
+    return bytes(key)
+
+4. Try all combinations and decrypt
+
+We loop over shift_dir in ['right','left'], output_bit in ['feedback','dropped'], and msb_first in [True, False]. For each candidate key we decrypt, then check for valid PKCS#7 padding and if the resulting plaintext looks like a flag.
+python
+
+from Crypto.Cipher import AES
+
+found = False
+for shift in ['right', 'left']:
+    for out in ['feedback', 'dropped']:
+        for msb in [True, False]:
+            bits = lfsr_generate(shift, out)
+            key = bits_to_key(bits, msb)
+
+            cipher = AES.new(key, AES.MODE_ECB)
+            plain = cipher.decrypt(ciphertext)
+
+            # Check PKCS#7 padding
+            pad = plain[-1]
+            if 1 <= pad <= 16 and all(plain[-i-1] == pad for i in range(pad)):
+                unpadded = plain[:-pad]
+                try:
+                    text = unpadded.decode('utf-8')
+                    if 'CTF' in text or 'flag' in text:
+                        print(f"✅ FLAG FOUND!")
+                        print(f"Shift: {shift}, Output: {out}, MSB first: {msb}")
+                        print(f"Key: {key.hex()}")
+                        print(f"Flag: {text}")
+                        found = True
+                        break
+                except UnicodeDecodeError:
+                    pass
+        if found:
+            break
+    if found:
+        break
+
+if not found:
+    print("No valid flag found – check your assumptions.")
+
+5. Result
+
+Running the exhaustive search yields the flag:
