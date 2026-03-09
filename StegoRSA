@@ -1,0 +1,57 @@
+Step 1: Initial Analysis
+
+    Used exiftool to examine the image.jpg metadata
+
+    Discovered a Comment field containing a long hexadecimal string
+
+    Noted the image uses Huffman coding (standard JPEG encoding)
+
+Step 2: Hex String Identification
+
+    The hex string began with 2d2d2d2d2d which translates to "-----" in ASCII
+
+    This pattern indicates a PEM-format private key header
+
+    The complete hex string represented an entire private key file
+
+Step 3: Hex to PEM Conversion
+
+    Saved the hex string to a file
+
+    Converted the hex dump back to binary format using hex decoding
+
+    The resulting file was identified as an OpenSSH private key (no password)
+
+Step 4: Key Verification
+
+    Examined the recovered private key using OpenSSL
+
+    Confirmed it was a valid 2048-bit RSA private key containing:
+
+        Modulus (n)
+
+        Public exponent (e = 65537)
+
+        Private exponent (d)
+
+        Prime factors (p and q)
+
+        Other RSA components
+
+Step 5: Locate Encrypted Flag
+
+    Listed directory contents
+
+    Identified flag.enc as the encrypted message file (256 bytes, matching RSA key size)
+
+Step 6: Decryption
+
+    Used the recovered private key to decrypt flag.enc
+
+    Applied RSA decryption with appropriate padding
+
+Step 7: Retrieve Flag
+
+    Viewed the decrypted output
+
+    Obtained the plaintext flag
