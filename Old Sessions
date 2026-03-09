@@ -1,0 +1,93 @@
+Step-by-Step Solution
+Step 1: Understanding the Clues
+
+The challenge provides two important hints:
+
+    "Where are cookies stored?"
+
+    "Do you know how to use the web inspector?"
+
+Plus the developer's statement: "once you login, you never have to log-out again"
+
+This immediately tells us we're dealing with persistent session cookies that can be viewed in the browser's developer tools.
+Step 2: Initial Reconnaissance
+
+When visiting the site, we see a login page for "The New Twitter" (a social media platform):
+
+    URL: http://dolphin-cove.picoctf.net:[port]/login
+
+    Login form with username/password fields
+
+    Link to register page at /register
+
+Step 3: Attempting Registration
+
+    Click the Register link to access /register
+
+    Create a test account (e.g., username: test, password: test)
+
+    After submitting, the site redirects back to the login page
+
+    Registration appears successful
+
+Step 4: Testing Login with Test Account
+
+    Try logging in with the newly created test credentials
+
+    Check cookies using browser developer tools:
+
+        Open Developer Tools (F12)
+
+        Go to Storage tab (Firefox) or Application tab (Chrome)
+
+        Check Cookies section
+
+        Run in console: console.log(document.cookie)
+
+Result: Cookies remain empty - test account doesn't generate a session cookie
+Step 5: Trying Common Development Credentials
+
+Since this is an application "still under development," try common default credentials:
+
+    admin:admin
+
+    admin:password
+
+    admin:password123
+
+    test:test
+
+    user:user
+
+Success! Using credentials:
+
+    Username: admin
+
+    Password: password
+
+The login is successful and redirects to the main page.
+Step 6: Locating the Flag
+
+After successful admin login, check for the flag:
+
+Option A - Check Cookies:
+javascript
+
+console.log(document.cookie);
+
+or navigate to Storage → Cookies → select the site URL
+
+Option B - Check Page Source:
+Right-click → View Page Source, search for "flag" or "picoCTF"
+
+Option C - Check Page Content:
+The flag may be displayed directly on the page after login
+Step 7: The Flag
+
+The flag appears either:
+
+    In a cookie value
+
+    Displayed on the dashboard page
+
+    In the page source
