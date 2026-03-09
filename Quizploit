@@ -1,0 +1,76 @@
+Step-by-Step Solution
+Step 1: Initial Binary Analysis with file command
+bash
+
+file vuln
+
+Output:
+text
+
+vuln: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=19251d430d5dd4b44a3e8489a8c76f1894676f7d, for GNU/Linux 3.2.0, not stripped
+
+This tells us:
+
+    Architecture: 64-bit
+
+    Linking: Dynamic
+
+    Stripped status: Not stripped
+
+Step 2: Source Code Analysis
+bash
+
+cat vuln.c
+
+c
+
+#include <stdio.h>
+#include <stdlib.h>
+
+void win(){
+        system("cat flag.txt");
+}
+
+void vuln(){
+        char buffer[0x15] = {0};
+        fprintf(stdout, "\nEnter payload: ");
+        fgets(buffer, 0x90, stdin);
+}
+
+void main(){
+        vuln();
+}
+
+Key observations:
+
+    Buffer size: 0x15 bytes
+
+    fgets reads: 0x90 bytes
+
+    win() function exists but is never called
+
+    Clear buffer overflow vulnerability
+
+Step 3: Check Security Protections
+bash
+
+checksec --file=vuln
+
+Output:
+text
+
+RELRO           STACK CANARY      NX            PIE             RPATH      RUNPATH      Symbols         FORTIFY Fortified       Fortifiable     FILE
+Partial RELRO   No canary found   NX enabled    No PIE          No RPATH   No RUNPATH   40 Symbols        No    0               1               vuln
+
+Only NX (Non-Executable stack) is enabled.
+Step 4: Find win() Function Address
+bash
+
+objdump -d vuln | grep win
+
+Output:
+text
+
+0000000000401176 <win>:
+
+win() address: 0x401176
