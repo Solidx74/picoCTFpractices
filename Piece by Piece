@@ -1,0 +1,53 @@
+Step 1: Connect to the remote server
+
+Use SSH to connect to the given server with the provided credentials:
+
+    Host: dolphin-cove.picoctf.net
+
+    Port: 56313
+
+    Username: ctf-player
+
+    Password: 83dcefb7
+
+Step 2: Examine the contents of the home directory
+
+After logging in, list all files in the current directory. You will find:
+
+    instructions.txt - A hint file explaining what to do
+
+    Five split archive parts: part_aa, part_ab, part_ac, part_ad, part_ae
+
+    Other system files like .profile and .cache directory
+
+Step 3: Read the instructions
+
+View the contents of instructions.txt. It reveals:
+
+    The flag is split into multiple parts as a zipped file
+
+    The parts need to be combined into one file using Linux commands
+
+    The resulting zip file is password protected with the password "supersecret"
+
+    After extracting, check the text file for the flag
+
+Step 4: Combine the split parts
+
+Since the file was split into multiple parts, they need to be concatenated back together in the correct order. The parts are named alphabetically (aa, ab, ac, ad, ae), so concatenating them in that order recreates the original file.
+
+Combine all parts starting with part_ into a single file named archive.zip.
+Step 5: Verify the combined file type
+
+Check what kind of file was created. The file command confirms it's a Zip archive.
+Step 6: Extract the password-protected zip
+
+The zip file requires a password to extract. Use the password "supersecret" as provided in the instructions.
+
+The extraction process creates a new file called flag.txt.
+Step 7: Read the flag
+
+Display the contents of flag.txt. This file contains the flag in the standard picoCTF format: picoCTF{...}.
+Step 8: Submit the flag
+
+Copy the flag from the terminal and submit it to complete the challenge.
