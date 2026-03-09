@@ -1,0 +1,63 @@
+Step 1 — Connect to the remote machine
+
+Use SSH with the provided port.
+
+ssh -p 59182 ctf-player@green-hill.picoctf.net
+
+Type yes when asked about the fingerprint.
+
+Then enter the password provided in the challenge.
+
+After login you will see:
+
+ctf-player@challenge:~$
+Step 2 — Check sudo permissions
+
+Run the following command to see what commands you can execute as root.
+
+sudo -l
+
+Output:
+
+User ctf-player may run the following commands on challenge:
+    (ALL) NOPASSWD: /bin/emacs
+
+This means:
+
+The user ctf-player can run emacs as root
+
+No password required
+
+This is a privilege escalation opportunity.
+
+Step 3 — Look for the flag
+
+List the files in the current directory.
+
+ls -la
+
+Output shows:
+
+-r--r----- 1 root root 31 Mar 6 20:18 flag.txt
+
+Important points:
+
+File owner: root
+
+Permissions: readable only by root
+
+So the normal user cannot read the file.
+
+Step 4 — Use sudo with emacs to read the file
+
+Since we can run emacs as root, open the flag file with it.
+
+sudo emacs flag.txt
+
+Because emacs runs as root, it can read the file.
+
+The flag will appear inside the emacs editor window.
+
+Step 5 — Copy the flag
+
+Inside emacs you will see the flag.
