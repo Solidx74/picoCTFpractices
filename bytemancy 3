@@ -1,0 +1,144 @@
+Challenge Overview
+
+Bytemancy 3 is a picoCTF challenge where you need to send the correct little-endian addresses of four functions from a binary called spellbook. The server randomly selects three of these functions and asks for their addresses. If you send all three correctly, you get the flag.
+Step 1: Understanding the Challenge
+
+We're given two files:
+
+    app.py - The server source code
+
+    spellbook - The 32-bit ELF binary
+
+The server does the following:
+
+    Loads the spellbook binary using pwn.ELF()
+
+    Randomly selects 3 functions from: ember_sigil, glyph_conflux, astral_spark, binding_word
+
+    Asks for their addresses in raw 4-byte little-endian format
+
+    Compares the received bytes with the actual addresses from the binary
+
+    If all three are correct, prints the flag
+
+Step 2: Analyzing the Binary
+
+First, we need to find the addresses of these functions. Using objdump:
+bash
+
+objdump -t spellbook | grep -E "ember_sigil|glyph_conflux|astral_spark|binding_word"
+
+Output:
+text
+
+08049176 g     F .text  00000024              ember_sigil
+0804919a g     F .text  00000027              glyph_conflux
+080491c1 g     F .text  00000022              astral_spark
+080491e3 g     F .text  00000031              binding_word
+
+These are the virtual addresses in hexadecimal format.
+Step 3: Understanding Endianness
+
+The challenge requires addresses in little-endian format. Since this is a 32-bit x86 binary, we need to reverse the byte order:
+Function	Address	Little-Endian Bytes
+ember_sigil	0x08049176	\x76\x91\x04\x08
+glyph_conflux	0x0804919a	\x9a\x91\x04\x08
+astral_spark	0x080491c1	\xc1\x91\x04\x08
+binding_word	0x080491e3	\xe3\x91\x04\x08
+
+The p32() function from pwntools can do this conversion automatically:
+python
+
+from pwn import p32
+p32(0x08049176)  # Returns b'\x76\x91\x04\x08'
+
+Step 4: Connecting to the Service
+
+The netcat command shows:
+bash
+
+nc green-hill.picoctf.net 56826
+
+This connects to the remote server. The port may change between attempts, so always use the port shown in your netcat command.
+Step 5: Creating the Solution Script
+
+Here's the complete solution script using pwntools:
+python
+
+#!/usr/bin/env python3
+from pwn import *
+
+# Load the binary to get symbol addresses
+elf = ELF('./spellbook')
+
+# Print addresses for verification
+print("[*] Function addresses:")
+print(f"    ember_sigil:    {hex(elf.symbols['ember_sigil'])}")
+print(f"    glyph_conflux:  {hex(elf.symbols['glyph_conflux'])}")
+print(f"    astral_spark:   {hex(elf.symbols['astral_spark'])}")
+print(f"    binding_word:   {hex(elf.symbols['binding_word'])}")
+
+# Connect to the remote service
+# Note: Port may change - update this!
+r = remote('green-hill.picoctf.net', 56826)
+
+# Skip the banner (8 lines)
+print("[*] Skipping banner...")
+for _ in range(8):
+    r.recvline()
+
+# Answer the 3 questions
+print("[*] Answering questions...")
+for i in range(3):
+    # Read the question line
+    line = r.recvline().decode()
+    print(line.strip())
+    
+    # Extract function name (it's between single quotes)
+    func_name = line.split("'")[1]
+    
+    # Read the "==> " prompt
+    prompt = r.recv(4).decode()
+    print(prompt, end='')
+    
+    # Send the address in little-endian format
+    addr_bytes = p32(elf.symbols[func_name])
+    r.send(addr_bytes)
+    print(f"[Sent {addr_bytes.hex()} for {func_name}]")
+
+# Receive the flag
+print("\n[*] Receiving flag...")
+flag = r.recvall().decode().strip()
+print(f"\n[+] Flag: {flag}")
+
+r.close()
+
+Step 6: Running the Solution
+
+Save the script as solve.py and run it:
+bash
+
+chmod +x solve.py
+python3 solve.py
+
+Expected output:
+text
+
+[*] Function addresses:
+    ember_sigil:    0x8049176
+    glyph_conflux:  0x804919a
+    astral_spark:   0x80491c1
+    binding_word:   0x80491e3
+
+[*] Connecting to green-hill.picoctf.net:56826...
+[+] Opening connection to green-hill.picoctf.net on port 56826: Done
+[*] Skipping banner...
+[*] Answering questions...
+[1/3] Send the 4-byte little-endian address for procedure 'glyph_conflux'.
+==> [Sent 9a910408 for glyph_conflux]
+[2/3] Send the 4-byte little-endian address for procedure 'binding_word'.
+==> [Sent e3910408 for binding_word]
+[3/3] Send the 4-byte little-endian address for procedure 'ember_sigil'.
+==> [Sent 76910408 for ember_sigil]
+
+[*] Receiving flag...
