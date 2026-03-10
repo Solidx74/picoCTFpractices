@@ -1,0 +1,121 @@
+Problem Overview
+
+We're given a Python script that implements an encryption scheme using an 8-bit Linear Feedback Shift Register (LFSR). The flag is encrypted and we have the ciphertext in output.txt.
+Understanding the Challenge
+
+Let's analyze the provided code:
+python
+
+key = bytes_to_long(get_random_bytes(126))  # 126 random bytes = 1008 bits
+
+def steplfsr(lfsr):
+    b7 = (lfsr >> 7) & 1
+    b5 = (lfsr >> 5) & 1
+    b4 = (lfsr >> 4) & 1
+    b3 = (lfsr >> 3) & 1
+
+    feedback = b7 ^ b5 ^ b4 ^ b3
+    lfsr = (feedback << 7) | (lfsr >> 1)
+    return lfsr
+
+def encrypt_lfsr(pt_bytes):
+    output = bytearray()
+    lfsr = key & 0xFF  # Only the lowest 8 bits of key are used!
+    for p in pt_bytes:
+        lfsr = steplfsr(lfsr)
+        ks = lfsr
+        output.append(p ^ ks)
+    return bytes_to_long(bytes(output))
+
+Critical observation: Although key is 126 bytes long, the encryption only uses the lowest 8 bits (key & 0xFF). The rest of the key is completely irrelevant!
+The Vulnerability
+
+The LFSR is only 8 bits wide, meaning it has at most 256 possible states. This is trivially brute-forceable. The encryption works by:
+
+    Starting with an initial 8-bit state (lfsr = key & 0xFF)
+
+    For each plaintext byte, step the LFSR and XOR the new state with the plaintext byte
+
+Attack Strategy
+
+We need to find the correct initial state that, when run through the LFSR stepping function, produces a keystream that decrypts the ciphertext to valid plaintext (likely containing the flag format).
+Step 1: Parse the ciphertext
+python
+
+from Crypto.Util.number import long_to_bytes
+
+# From output.txt
+ct_hex = "21c1b705764e4bfdafd01e0bfdbc38d5eadf92991cdd347064e37444e517d661cea9"
+ct_bytes = bytes.fromhex(ct_hex)
+
+Step 2: Brute force all 256 possible initial states
+
+For each possible initial state (0-255), we simulate the encryption process in reverse:
+python
+
+def try_decrypt(ct_bytes, initial_state):
+    lfsr = initial_state
+    plaintext = bytearray()
+    
+    for ct_byte in ct_bytes:
+        lfsr = steplfsr(lfsr)  # Step first (same as encryption)
+        pt_byte = ct_byte ^ lfsr
+        plaintext.append(pt_byte)
+    
+    return bytes(plaintext)
+
+Step 3: Identify the correct plaintext
+
+We need a way to recognize valid plaintext. Since the flag format is likely ASCII, we can check if all decrypted bytes are printable ASCII:
+python
+
+def is_printable(text):
+    return all(32 <= b <= 126 for b in text)
+
+for init_state in range(256):
+    result = try_decrypt(ct_bytes, init_state)
+    if is_printable(result):
+        print(f"State {init_state:02x}: {result}")
+
+Complete Solution Script
+python
+
+from Crypto.Util.number import long_to_bytes
+
+def steplfsr(lfsr):
+    b7 = (lfsr >> 7) & 1
+    b5 = (lfsr >> 5) & 1
+    b4 = (lfsr >> 4) & 1
+    b3 = (lfsr >> 3) & 1
+
+    feedback = b7 ^ b5 ^ b4 ^ b3
+    lfsr = (feedback << 7) | (lfsr >> 1)
+    return lfsr
+
+def decrypt_with_state(ct_bytes, initial_state):
+    lfsr = initial_state
+    plaintext = bytearray()
+    
+    for ct_byte in ct_bytes:
+        lfsr = steplfsr(lfsr)
+        plaintext.append(ct_byte ^ lfsr)
+    
+    return bytes(plaintext)
+
+def main():
+    # Read ciphertext
+    ct_hex = "21c1b705764e4bfdafd01e0bfdbc38d5eadf92991cdd347064e37444e517d661cea9"
+    ct_bytes = bytes.fromhex(ct_hex)
+    
+    # Try all possible 8-bit initial states
+    for state in range(256):
+        pt = decrypt_with_state(ct_bytes, state)
+        
+        # Check if result is printable ASCII
+        if all(32 <= b <= 126 for b in pt):
+            print(f"Found valid plaintext with initial state: {state:02x}")
+            print(f"Plaintext: {pt.decode('ascii')}")
+            print()
+
+if __name__ == "__main__":
+    main()
