@@ -1,0 +1,63 @@
+Step-by-Step Solution: Forensics Git 1
+Step 1: Decompress the Disk Image
+
+The disk image was provided as a compressed file disk.img.gz. When attempting to decompress it with gunzip, an "unexpected end of file" error occurred initially, but using gunzip -v (verbose mode) successfully decompressed the file to disk.img.
+Step 2: Analyze the Disk Image
+
+Using the file command on disk.img revealed it's a DOS/MBR boot sector with three partitions:
+
+    Partition 1: Linux filesystem, startsector 2048 (614400 sectors)
+
+    Partition 2: Linux swap, startsector 616448 (524288 sectors)
+
+    Partition 3: Linux filesystem, startsector 1140736 (956416 sectors)
+
+Step 3: Mount the Partitions
+
+Since the Git repository was likely on a data partition, we mounted the third partition using the offset calculation (sector size is typically 512 bytes):
+
+    Offset = startsector × 512 = 1140736 × 512
+
+Command used: sudo mount -o loop,offset=$((1140736 * 512)) disk.img /mnt/forensics3
+Step 4: Explore the Mounted Filesystem
+
+After mounting, we explored the directory structure and found a home directory for a user "ctf-player":
+text
+
+/mnt/forensics3/home/ctf-player/Code/secrets/
+
+Step 5: Locate the Git Repository
+
+Using the find command to search for Git repositories:
+bash
+
+find /mnt/forensics3 -name ".git" -type d
+
+This revealed a Git repository at: /mnt/forensics3/home/ctf-player/Code/secrets/.git
+Step 6: Examine Git History
+
+Navigating to the repository and checking the commit history with git log --oneline showed two commits:
+
+    5fb8194 (HEAD → master) "Remove flag" (later commit)
+
+    177789a "Add flag" (earlier commit)
+
+Step 7: Access the Earlier Commit
+
+The hint "How can you checkout the files of a previous commit?" guided us to check out the commit where the flag was added:
+bash
+
+git checkout 177789a
+
+This put us in a "detached HEAD" state at the commit that added the flag.
+Step 8: Find the Flag File
+
+Listing the files in this commit revealed:
+
+    flag.txt - a text file containing the flag
+
+    .git - the Git repository directory
+
+Step 9: Read the Flag
+
+Finally, reading the contents of flag.txt would reveal the flag.
