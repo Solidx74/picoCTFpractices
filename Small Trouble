@@ -1,0 +1,97 @@
+Step 1: Understanding the encryption
+
+From encryption.py:
+
+    Two large primes p and q of 1048 bits each are generated, giving n = p * q (2096 bits).
+
+    The private exponent d is a 256‑bit prime (so relatively small).
+
+    The public exponent e is computed as the modular inverse of d modulo φ(n) = (p‑1)(q‑1).
+
+    The flag is converted to a number m and encrypted as c = m^e mod n.
+
+The fact that d is only 256 bits while n is 2096 bits makes this RSA instance vulnerable to Wiener’s attack because d < n^(1/4) (since 256 bits < 2096/4 = 524 bits). The hint also mentions Boneh‑Durfee, which would handle slightly larger d, but Wiener’s simpler method works here.
+Step 2: Wiener’s attack theory
+
+Wiener’s attack exploits the fact that if the private exponent d is small, then there exists an integer k such that
+
+ed - kφ(n) = 1 → |e/φ(n) - k/d| = 1/(dφ(n)).
+
+Since φ(n) ≈ n, we have e/n ≈ k/d. Because d is small, k/d is a convergent of the continued fraction expansion of e/n. By computing the convergents of e/n, we can test each candidate (k, d) to see if it yields a valid factorization of n.
+Step 3: Implementing the attack
+
+We implement the continued fraction algorithm and check each convergent (k, d) as follows:
+
+    Compute φ = (e·d - 1) // k (must be integer).
+
+    Solve for p and q using the relations:
+
+        p + q = n - φ + 1
+
+        p·q = n
+        The quadratic x² - (n - φ + 1)x + n = 0 must have integer roots.
+
+    Check the discriminant Δ = (n - φ + 1)² - 4n for being a perfect square.
+
+    If Δ is a perfect square, compute p, q and verify p·q = n. If true, we have found d.
+
+Below is a Python script that performs this attack. (It uses pycryptodome’s long_to_bytes only for final conversion, but all arithmetic is built‑in.)
+python
+
+from Crypto.Util.number import long_to_bytes
+import math
+
+def continued_fraction(n, d):
+    """Generate terms of continued fraction for n/d."""
+    while d:
+        q = n // d
+        yield q
+        n, d = d, n - q * d
+
+def convergents(cf):
+    """Return successive convergents (num, den) from cf terms."""
+    n0, d0 = 0, 1
+    n1, d1 = 1, 0
+    for q in cf:
+        n2 = q * n1 + n0
+        d2 = q * d1 + d0
+        yield n2, d2
+        n0, d0 = n1, d1
+        n1, d1 = n2, d2
+
+def wiener_attack(e, n):
+    for k, d in convergents(continued_fraction(e, n)):
+        if k == 0:
+            continue
+        if (e * d - 1) % k != 0:
+            continue
+        phi = (e * d - 1) // k
+        b = n - phi + 1          # p + q
+        disc = b * b - 4 * n
+        if disc < 0:
+            continue
+        sqrt_disc = math.isqrt(disc)
+        if sqrt_disc * sqrt_disc != disc:
+            continue
+        p = (b + sqrt_disc) // 2
+        q = (b - sqrt_disc) // 2
+        if p * q == n:
+            return d
+    return None
+
+# Data from message.txt
+n = 5373023917854193881488148836268626600844966281094228434713980008645456420843143769937802968738417683912196360187822314641531289831416849843834294947162108743385885201143962499668253981778933829477918509308138753994630824563305549208699656576046998743101679277346011300445088928426443263440407332108573920095572495887336787501868602859232364962889738516998648659421472975661443315919229381772808125492399458662756452065224512066490631968796992359996527817272426440609170087107595860015529546235930679259402315566488964177389716401713764517137452524909467959220676180314062831730087845639199434832005991020618034043100384713370100627
+e = 4175583310868652795300389965113565284418414727600716553878889121570817121530394955885654470345498424147652782860439153533821520467215768811709779080727072026933970849370441405003785761938004614591363765462007017522440468621348121750194346049690778543561287741523269727453809859056306759364812353299075154947548484490321009692565003725743721641948720327197056869530828909832774202847759363409628259971009275969423090139856416850801771947794840407742824548811917984728009733304386574925900513975416080481447775928972308069784695578233900533243790494512972121530886816598355680939019684668868018118371194226699363499439201267833521093
+c = 2500819896564584617073762334459041098841594691174535309936704141022838857040696686628635484780998955836325607547138326719982847437563730437151322010563996486228600552820177768908015959236557652633765699415304236411634510473064786230642124480616654513063794965767198092919247311938298130695586430013122005242323679167603021982633547351911610485945201515119856661443203318319791821169501171710665128421312624273078300503544919054280485405394300019718867804862663270565462369993000366913519915434789703258524585016270657421220390872493953080216730400140949931138140355541842913665050790770947242092493065556893672338451256709457258034
+
+d = wiener_attack(e, n)
+if d:
+    m = pow(c, d, n)
+    flag = long_to_bytes(m).decode()
+    print("Flag:", flag)
+else:
+    print("Attack failed – try Boneh‑Durfee.")
+
+Step 4: Running the script
+
+After installing pycryptodome (pip install pycryptodome), running the script produces:
