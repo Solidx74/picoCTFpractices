@@ -1,0 +1,60 @@
+Step 1: Read the Source Code
+
+You already did:
+
+while(True):
+    ...
+    print('Send me ASCII DECIMAL 101 1751 times, side-by-side, no space.')
+    ...
+    if user_input == "\x65"*1751:
+        print(open("./flag.txt", "r").read())
+What this tells us:
+
+The program expects ASCII decimal 101, 1751 times, with no spaces.
+
+\x65 is hexadecimal for decimal 101.
+
+Decimal 101 in ASCII corresponds to the letter e.
+
+So, the program is waiting for 1751 e characters in a row.
+
+Step 2: Prepare the Input
+
+Typing 1751 es manually is impractical.
+We can use Python to generate it.
+
+Open a terminal and run:
+
+python3 -c 'print("e"*1751)'
+
+Explanation:
+
+"e"*1751 → repeats "e" 1751 times.
+
+print(...) → outputs the string to terminal or pipe.
+
+Step 3: Connect to the Challenge Server
+
+The instructions said:
+
+nc foggy-cliff.picoctf.net 53052
+
+nc (netcat) opens a TCP connection.
+
+53052 → port number.
+
+Once connected, you’ll see:
+
+⊹──────[ BYTEMANCY-1 ]──────⊹
+Send me ASCII DECIMAL 101 1751 times, side-by-side, no space.
+==>
+Step 4: Send the Input
+Option 1: Manual Paste
+
+Copy the output from step 2 (e repeated 1751 times).
+
+Paste it into the netcat terminal.
+
+Press Enter.
+
+The server should return the flag.
