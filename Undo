@@ -1,0 +1,37 @@
+Step 1: Understand the encoding
+
+The flag cvpbPGS{Eriref1at_g3kg_Ge4afs0ez@g10af_7n89n9qn} has ROT13 applied only to letters. Numbers and symbols remain unchanged.
+Step 2: Recall ROT13 properties
+
+ROT13 is a Caesar cipher with shift of 13. Since there are 26 letters in the alphabet, applying ROT13 twice returns the original text:
+
+    A → N → A
+
+    B → O → B
+
+    etc.
+
+Step 3: Create the decoding command
+
+Use the tr (translate) command to shift letters by 13 positions:
+bash
+
+echo "cvpbPGS{Eriref1at_g3kg_Ge4afs0ez@g10af_7n89n9qn}" | tr 'A-Za-z' 'N-ZA-Mn-za-m'
+
+This works because:
+
+    'A-Za-z' matches all uppercase and lowercase letters
+
+    'N-ZA-Mn-za-m' maps:
+
+        A-M → N-Z (first half of uppercase to second half)
+
+        N-Z → A-M (second half of uppercase to first half)
+
+        a-m → n-z (first half of lowercase to second half)
+
+        n-z → a-m (second half of lowercase to first half)
+
+Step 4: Execute the command
+
+When you run this command, it will output:
