@@ -1,0 +1,124 @@
+Challenge Overview
+
+We were given a compressed disk image (disk.img.gz) and told that a deletion routine was interrupted before any Git objects were touched. Our goal was to recover a Git repository and find the flag.
+Step-by-Step Solution
+1. Initial Setup and Disk Examination
+
+First, I extracted the disk image and examined its structure:
+bash
+
+# Extract the disk image
+gunzip disk.img.gz
+
+# Check the disk image type
+file disk.img
+# Output: DOS/MBR boot sector with 3 partitions
+
+# Examine partition layout
+fdisk -l disk.img
+# Found 3 partitions:
+# - Partition 1: Linux, start 2048, size 614400 sectors
+# - Partition 2: Linux swap
+# - Partition 3: Linux, start 1140736, size 956416 sectors
+
+2. Extracting the Partitions
+
+Since I was having issues with loop devices, I extracted the partitions directly using dd:
+bash
+
+# Extract partition 1 (300M)
+dd if=disk.img of=partition1.img bs=512 skip=2048 count=614400
+
+# Extract partition 3 (467M) - where Git repo was likely located
+dd if=disk.img of=partition3.img bs=512 skip=1140736 count=956416
+
+# Verify partition 3 is an ext4 filesystem
+file partition3.img
+# Output: Linux rev 1.0 ext4 filesystem data
+
+3. Mounting the Partition
+bash
+
+# Create mount point
+sudo mkdir -p /mnt/part3_ext
+
+# Mount partition 3
+sudo mount -o loop partition3.img /mnt/part3_ext
+
+# Examine contents
+ls -la /mnt/part3_ext/
+# Found standard Linux directory structure with home, etc, var, etc.
+
+4. Locating the Git Repository
+bash
+
+# Search for .git directories
+find /mnt/part3_ext -name ".git" -type d 2>/dev/null
+# Found: /mnt/part3_ext/home/ctf-player/Code/killer-chat-app/.git
+
+# Navigate to the repository
+cd /mnt/part3_ext/home/ctf-player/Code/killer-chat-app/
+
+# List contents
+ls -la
+# Found: client, server, logs/ directory, and .git/
+
+5. Examining the Repository
+bash
+
+# Check git status
+git status
+# Output: On branch master, No commits yet
+# Files staged: client, logs/1.txt, logs/2.txt, logs/4.txt, server
+
+# Examine the files
+cat client
+# #!/bin/bash
+# nc "$1" 9000
+
+cat server
+# #!/bin/bash
+# nc -lvp 9000
+
+# Check log files
+cat logs/1.txt
+# Jade: Finally beat the Elden Ring DLC tonight.
+# Marco: Nice! That Messmer fight was brutal but so good.
+# Jade: Totally worth the grind.
+
+cat logs/2.txt
+# Eva: Are you caught up on The Last of Us?
+# Nina: Episode 5 wrecked me; the clickers were intense.
+# Eva: Can't wait for the next season already.
+
+cat logs/4.txt
+# Pip: My cat thinks the keyboard is a napping pad now.
+# Lou: Maybe it's writing a novel in secret.
+# Pip: I'd read anything titled "Meowmoirs".
+
+6. Noticing the Missing Log File
+
+The log files were numbered 1, 2, and 4 - suspiciously missing logs/3.txt. Since the hint said "deletion was interrupted before any git objects were touched", the missing file should still exist as a Git object.
+7. Searching for the Missing File in Git Objects
+bash
+
+# Copy repository to local machine for easier analysis
+sudo cp -r /mnt/part3_ext/home/ctf-player/Code/killer-chat-app /home/kali/Downloads/
+sudo chown -R kali:kali /home/kali/Downloads/killer-chat-app
+cd /home/kali/Downloads/killer-chat-app
+
+# Search all blob objects for flag patterns
+git cat-file --batch-check --batch-all-objects | while read hash type size; do
+    if [ "$type" = "blob" ]; then
+        content=$(git cat-file -p $hash 2>/dev/null | head -5)
+        if echo "$content" | grep -q -i "flag\|pico\|ctf\|{"; then
+            echo "=== $hash ==="
+            echo "$content"
+            echo ""
+        fi
+    fi
+done
+
+8. Discovering the Flag
+
+The search revealed a blob object containing the missing logs/3.txt with the flag:
