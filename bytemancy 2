@@ -1,0 +1,44 @@
+Step 1: Understand the challenge
+
+The program app.py (provided) runs a loop that asks the user to send the hex byte 0xFF three times in a row, with no spaces. It reads the input using sys.stdin.buffer.readline() and compares it to b"\xff\xff\xff". If they match, it prints the flag from flag.txt. Otherwise, it echoes back what it received.
+
+Because 0xFF is a non‑printable byte (in ASCII it corresponds to ÿ but the terminal will interpret it differently), you cannot simply type it. You need to send the raw bytes over the network.
+Step 2: Connect to the remote service
+
+The netcat command shows the service is at lonely-island.picoctf.net on port 50596. We must write a script that connects to this address and sends the three bytes followed by a newline (since readline() expects a line ending).
+Step 3: Write a Python script using the built‑in socket module
+
+This approach works on any system without extra libraries.
+python
+
+import socket
+
+HOST = 'lonely-island.picoctf.net'
+PORT = 50596
+
+# Create a TCP socket and connect
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.connect((HOST, PORT))
+
+# Receive data until we see the prompt '==> '
+data = b''
+while b'==> ' not in data:
+    data += s.recv(1024)
+
+# Send the required bytes (0xFF,0xFF,0xFF) followed by newline
+s.send(b'\xff\xff\xff\n')
+
+# Receive the server's response (should contain the flag)
+response = s.recv(4096)
+print(response.decode())
+
+s.close()
+
+Step 4: Run the script
+
+Execute the script with Python:
+bash
+
+python solve.py
+
+The output will include the flag, for example:
