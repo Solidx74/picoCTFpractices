@@ -1,0 +1,92 @@
+Step 1: Understanding the file type
+
+The file suspicious.zip is actually a password-protected ZIP archive containing a Firefox extension file (.xpi). When unzipped with the provided password "picoctf", we get 56102ec0438646c68605-1.0.xpi.
+Step 2: Extract the XPI file
+
+XPI files are just ZIP archives containing browser extension files. Extract it:
+bash
+
+unzip 56102ec0438646c68605-1.0.xpi -d extension
+
+Step 3: Examine the extension structure
+
+Navigate to the extracted directory and list contents:
+bash
+
+cd extension
+ls -la
+
+We find several directories and files:
+
+    manifest.json - extension configuration
+
+    background/main.js - background script
+
+    popup.html - popup interface
+
+    assets/ - CSS and JS files
+
+    icons/ - icon images
+
+    META-INF/ - extension metadata
+
+Step 4: Analyze manifest.json
+bash
+
+cat manifest.json
+
+The manifest shows this is a Firefox extension that:
+
+    Has permissions for webNavigation
+
+    Uses a background script at background/main.js
+
+    Has a browser action popup (popup.html)
+
+Step 5: Search for interesting data
+
+Look for long base64-like strings and Fernet tokens:
+bash
+
+grep -rE '[A-Za-z0-9_-]{40,}' .
+grep -r "gAAAA" .
+
+We find two interesting items in background/main.js:
+
+    A base64 string: cGljb0NURnt5b3UncmUgb24gdGhlIHJpZ2h0IHRyYX0=
+
+    A Fernet token starting with gAAAAABmfRjwFKUB-X3GBBqaN1tZYcPg5oLJVJ5XQHFogEgcRSxSis1e4qwicAKohmjqaD-QG8DIN5ie3uijCVAe3xiYmoEHlxATWUP3DC97R00Cgkw4f3HZKsP5xHewOqVPH8ap9FbE
+
+Step 6: Decode the base64 string
+
+The first string looks like a base64 encoded message:
+bash
+
+echo "cGljb0NURnt5b3UncmUgb24gdGhlIHJpZ2h0IHRyYX0=" | base64 -d
+
+This outputs: picoCTF{you're on the right tra} - which appears to be a partial flag or a hint.
+Step 7: Understand Fernet encryption
+
+Hint 2 mentions "modern Python scheme uses url-safe Base64 32-byte keys" - this refers to Fernet encryption from the cryptography library. The base64 string from step 6 is likely the Fernet key.
+Step 8: Decrypt the Fernet token
+
+Create a Python script to decrypt the token:
+python
+
+from cryptography.fernet import Fernet
+
+# The key from the base64 string
+key = b"cGljb0NURnt5b3UncmUgb24gdGhlIHJpZ2h0IHRyYX0="
+
+# The token that looks like a webhook URL
+token = b"gAAAAABmfRjwFKUB-X3GBBqaN1tZYcPg5oLJVJ5XQHFogEgcRSxSis1e4qwicAKohmjqaD-QG8DIN5ie3uijCVAe3xiYmoEHlxATWUP3DC97R00Cgkw4f3HZKsP5xHewOqVPH8ap9FbE"
+
+# Decrypt
+f = Fernet(key)
+decrypted = f.decrypt(token)
+print(decrypted.decode())
+
+Run the script:
+bash
+
+python3 decrypt.py
