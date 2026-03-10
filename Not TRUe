@@ -1,0 +1,152 @@
+Step 1: Understanding NTRU Encryption
+
+NTRU is a lattice-based cryptosystem where:
+
+    Private key: Two small ternary polynomials f and g (coefficients in {-1,0,1})
+
+    Public key: h = p * (f_q⁻¹ * g) mod q where f_q⁻¹ is the inverse of f modulo q
+
+    Encryption: e = r*h + m mod q where r is a random ternary polynomial and m is the message
+
+The security relies on the difficulty of finding f given h, which is equivalent to solving the shortest vector problem in a lattice.
+Step 2: The NTRU Lattice Attack
+
+The key insight: We can construct a lattice that contains the private key as a short vector.
+
+For NTRU, we build a 2N-dimensional lattice with basis:
+text
+
+[ I_N    H  ]
+[ 0     qI_N ]
+
+Where:
+
+    I_N is the N×N identity matrix
+
+    H is the N×N circulant matrix of the public key h
+
+    qI_N is q times the identity matrix
+
+This lattice contains the vector (f, g) because:
+f*H ≡ g (mod q) from the relation h = p*(f_q⁻¹*g) mod q
+
+The vector (f, g) is short because both f and g have coefficients in {-1,0,1}.
+Step 3: Building the Lattice
+
+First, we construct the circulant matrix H from the public key h:
+python
+
+H = matrix(ZZ, N, N)
+h_coeffs = h.list()
+for i in range(N):
+    for j in range(N):
+        idx = (j - i) % N
+        H[i, j] = h_coeffs[idx]
+
+Then build the full basis matrix:
+python
+
+basis = matrix(ZZ, 2*N, 2*N)
+basis[:N, :N] = identity_matrix(ZZ, N)
+basis[:N, N:] = H
+basis[N:, :N] = zero_matrix(ZZ, N, N)
+basis[N:, N:] = q * identity_matrix(ZZ, N)
+
+Step 4: Lattice Reduction with LLL
+
+The LLL (Lenstra-Lenstra-Lovász) algorithm finds short vectors in a lattice. We apply it to our basis:
+python
+
+reduced = basis.LLL()
+
+The reduced basis will contain the short vector (f, g) among its rows.
+Step 5: Finding the Private Key f
+
+We search through the reduced basis rows looking for a vector where:
+
+    The first N coefficients (the f part) are in {-1,0,1}
+
+    The polynomial is invertible modulo both p and q (a requirement for NTRU decryption)
+
+python
+
+for row in reduced.rows():
+    f_vec = row[:N]
+    if all(abs(c) <= 1 for c in f_vec) and any(c != 0 for c in f_vec):
+        try:
+            f_cand_q = Rq(f_vec.list())
+            f_cand_p = Rp(f_vec.list())
+            # Test invertibility
+            f_q_inv_cand = f_cand_q**-1
+            f_p_inv_cand = f_cand_p**-1
+            f = f_cand_q
+            f_q_inv = f_q_inv_cand
+            f_p_inv = f_p_inv_cand
+            break
+        except (ArithmeticError, ValueError):
+            continue
+
+Step 6: Recovering g
+
+Once we have f, we can recover g directly using the public key relation:
+
+From h = p * (f_q⁻¹ * g) mod q, we multiply both sides by f:
+h * f = p * g mod q
+
+Therefore: g = h * f * p⁻¹ mod q
+python
+
+p_inv_q = Integers(q)(p).inverse_of_unit()
+g = Rq(h * f * p_inv_q)
+
+Step 7: Decrypting the Ciphertext
+
+With the private key recovered, we can decrypt each ciphertext block:
+
+For NTRU decryption:
+
+    Compute a = f * e mod q
+
+    Center-lift a to integers in the range (-q/2, q/2]
+
+    Reduce modulo p: a_mod_p = a mod p
+
+    Multiply by f_p⁻¹ to recover the message: m = f_p⁻¹ * a_mod_p mod p
+
+python
+
+for ct_list in ct_lists:
+    e = Rq(ct_list)
+    a = Rq(f * e)
+    # Center lift a
+    a_coeffs = [c.lift() for c in a.list()]
+    a_centered = [c if c <= q//2 else c - q for c in a_coeffs]
+    # Reduce modulo p
+    a_mod_p = Rp([c % p for c in a_centered])
+    m = Rp(f_p_inv * a_mod_p)
+    # Extract bits
+    bits = [int(c.lift()) for c in m.list()]
+    binary_str += ''.join(str(b) for b in bits)
+
+Step 8: Converting Binary to ASCII
+
+Finally, we convert the concatenated binary string back to ASCII:
+python
+
+flag = ""
+for i in range(0, len(binary_str), 8):
+    byte = binary_str[i:i+8]
+    if len(byte) == 8:
+        flag += chr(int(byte, 2))
+
+Why This Attack Works
+
+The NTRU lattice attack works because:
+
+    The private key (f, g) is a very short vector in the lattice
+
+    LLL algorithm can find short vectors efficiently when the dimension is modest (N=48 is small enough)
+
+    The public key h provides the lattice structure that contains the private key
+
+    The parameters chosen (p=3, q=509) create a lattice where the target vector is significantly shorter than other lattice vectors
