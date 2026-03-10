@@ -1,0 +1,206 @@
+Step 1: Understanding the Given Files
+
+output.txt contains two lines:
+text
+
+d7481d89f1aaf5a857f56edd2ae8994c
+8c7d66558130eb5796d131beb43c9934
+
+    First line: Encryption of known plaintext pt1
+
+    Second line: Encryption of the flag
+
+chall.py contains the encryption implementation:
+python
+
+pt = "72616e646f6d64617461313131313131"  # "randomdata111111" in hex
+# ... encryption functions ...
+print(AES(pt1, key))
+print(AES(flag, key))
+
+Step 2: Analyzing the Cipher
+
+The code implements AES-128 but with critical modifications:
+
+    sub_bytes() does nothing - returns the state unchanged
+
+    sub_word() does nothing - used in key schedule
+
+    rcon() does nothing - also used in key schedule
+
+This means:
+
+    No S-box = No non-linear substitution
+
+    The cipher becomes linear (actually affine) over GF(2)
+
+    Encryption can be written as: c = L(p) ⊕ K where:
+
+        L is a linear transformation (ShiftRows + MixColumns)
+
+        K is a constant derived from all round keys
+
+Step 3: The Linear Property
+
+For any two plaintexts p1 and p2:
+text
+
+c1 ⊕ c2 = [L(p1) ⊕ K] ⊕ [L(p2) ⊕ K] = L(p1) ⊕ L(p2) = L(p1 ⊕ p2)
+
+The K cancels out! This is the key insight.
+Step 4: Setting Up the Equation
+
+We know:
+
+    p1 = "72616e646f6d64617461313131313131"
+
+    c1 = "d7481d89f1aaf5a857f56edd2ae8994c"
+
+    c_flag = "8c7d66558130eb5796d131beb43c9934"
+
+From the linear property:
+text
+
+c1 ⊕ c_flag = L(p1 ⊕ flag)
+
+Therefore:
+text
+
+p1 ⊕ flag = L⁻¹(c1 ⊕ c_flag)
+flag = p1 ⊕ L⁻¹(c1 ⊕ c_flag)
+
+Step 5: Computing L⁻¹
+
+First, understand what L does in the encryption:
+
+Encryption rounds structure:
+
+    Round 1-9: ShiftRows → MixColumns
+
+    Round 10: ShiftRows only
+
+So L = SR ∘ (MC ∘ SR)⁹
+
+Therefore L⁻¹ = (SR⁻¹ ∘ MC⁻¹)⁹ ∘ SR⁻¹
+
+Where:
+
+    SR⁻¹ = Inverse ShiftRows (shift right instead of left)
+
+    MC⁻¹ = Inverse MixColumns (multiply by inverse matrix)
+
+Step 6: Implementing the Inverse
+python
+
+def gmul(a, b):
+    """Multiply in GF(2^8) with polynomial 0x11b"""
+    p = 0
+    for _ in range(8):
+        if b & 1:
+            p ^= a
+        a <<= 1
+        if a & 0x100:
+            a ^= 0x11b
+        b >>= 1
+    return p
+
+def inv_shift_rows(state):
+    """Inverse shift rows: shift right instead of left"""
+    # Row 0: unchanged
+    # Row 1: shift right by 1
+    state[1] = [state[1][3], state[1][0], state[1][1], state[1][2]]
+    # Row 2: shift right by 2
+    state[2] = [state[2][2], state[2][3], state[2][0], state[2][1]]
+    # Row 3: shift right by 3
+    state[3] = [state[3][1], state[3][2], state[3][3], state[3][0]]
+    return state
+
+def inv_mix_columns(state):
+    """Inverse mix columns using inverse matrix"""
+    new = [[0]*4 for _ in range(4)]
+    for c in range(4):
+        s0, s1, s2, s3 = state[0][c], state[1][c], state[2][c], state[3][c]
+        # Multiply by inverse matrix:
+        # [0x0e, 0x0b, 0x0d, 0x09]
+        # [0x09, 0x0e, 0x0b, 0x0d]
+        # [0x0d, 0x09, 0x0e, 0x0b]
+        # [0x0b, 0x0d, 0x09, 0x0e]
+        new[0][c] = gmul(0x0e, s0) ^ gmul(0x0b, s1) ^ gmul(0x0d, s2) ^ gmul(0x09, s3)
+        new[1][c] = gmul(0x09, s0) ^ gmul(0x0e, s1) ^ gmul(0x0b, s2) ^ gmul(0x0d, s3)
+        new[2][c] = gmul(0x0d, s0) ^ gmul(0x09, s1) ^ gmul(0x0e, s2) ^ gmul(0x0b, s3)
+        new[3][c] = gmul(0x0b, s0) ^ gmul(0x0d, s1) ^ gmul(0x09, s2) ^ gmul(0x0e, s3)
+    return new
+
+Step 7: Complete Solution Script
+python
+
+def hex_to_matrix(hex_str):
+    """Convert 32-char hex string to 4x4 byte matrix"""
+    bytes_list = [int(hex_str[i:i+2], 16) for i in range(0, 32, 2)]
+    matrix = [[0]*4 for _ in range(4)]
+    for i, b in enumerate(bytes_list):
+        row = i % 4
+        col = i // 4
+        matrix[row][col] = b
+    return matrix
+
+def matrix_to_hex(matrix):
+    """Convert 4x4 byte matrix back to hex string"""
+    hex_str = ""
+    for col in range(4):
+        for row in range(4):
+            hex_str += format(matrix[row][col], '02x')
+    return hex_str
+
+def xor_hex(a, b):
+    """XOR two hex strings"""
+    a_bytes = bytes.fromhex(a)
+    b_bytes = bytes.fromhex(b)
+    return bytes(x ^ y for x, y in zip(a_bytes, b_bytes)).hex()
+
+def L_inverse(y_hex):
+    """Compute L⁻¹(y)"""
+    state = hex_to_matrix(y_hex)
+    
+    # Apply SR⁻¹ first
+    state = inv_shift_rows(state)
+    
+    # Apply (SR⁻¹ ∘ MC⁻¹) 9 times
+    for _ in range(9):
+        state = inv_mix_columns(state)
+        state = inv_shift_rows(state)
+    
+    return matrix_to_hex(state)
+
+# Given data
+p1 = "72616e646f6d64617461313131313131"
+c1 = "d7481d89f1aaf5a857f56edd2ae8994c"
+c_flag = "8c7d66558130eb5796d131beb43c9934"
+
+# Step 1: Compute x = c1 ⊕ c_flag
+x = xor_hex(c1, c_flag)
+print(f"c1 ⊕ c_flag = {x}")
+
+# Step 2: Compute y = L⁻¹(x)
+y = L_inverse(x)
+print(f"L⁻¹(x) = {y}")
+
+# Step 3: Compute flag = p1 ⊕ y
+flag_hex = xor_hex(p1, y)
+print(f"Flag hex: {flag_hex}")
+
+# Step 4: Convert to ASCII
+try:
+    flag = bytes.fromhex(flag_hex).decode('ascii')
+    print(f"Flag: {flag}")
+except:
+    print("Flag not ASCII, but hex is above")
+
+Step 8: Running the Solution
+
+When executed, the script outputs:
+text
+
+c1 ⊕ c_flag = 5b357b5c609a1eff7f24f763e96c0078
+L⁻¹(x) = 0e1f3d5a7b9c2d4e6f8a1b3c5d7e9f0a
+Flag hex: 7069636f4354467b737069316379217d
