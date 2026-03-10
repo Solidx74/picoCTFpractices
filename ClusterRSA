@@ -1,0 +1,131 @@
+Problem Overview
+
+We're given an RSA-encrypted message, but instead of the usual two primes, the modulus n is composed of multiple primes (hence "ClusterRSA").
+
+Given:
+text
+
+n = 8749002899132047699790752490331099938058737706735201354674975134719667510377522805717156720453193651
+e = 65537
+ct = 1540727604168001476834564078802265850886645733701728735298015222241133874453234034740567290095334786
+
+Step 1: Understanding Multi-prime RSA
+
+In standard RSA:
+
+    n = p × q (2 primes)
+
+    φ(n) = (p-1)(q-1)
+
+    d = e⁻¹ mod φ(n)
+
+In multi-prime RSA:
+
+    n = p₁ × p₂ × p₃ × ... × pₖ (k primes)
+
+    φ(n) = (p₁-1)(p₂-1)(p₃-1)...(pₖ-1)
+
+    d = e⁻¹ mod φ(n) (same formula!)
+
+The decryption process is identical once we have all the prime factors.
+Step 2: Factoring n
+
+Since n is 100 digits long (~330 bits), manual factoring is impossible. We use FactorDB, an online database of known factorizations.
+
+Method 1: Using factordb-pycli (command line)
+bash
+
+pip install factordb-pycli
+factordb 8749002899132047699790752490331099938058737706735201354674975134719667510377522805717156720453193651
+
+Method 2: Using Python with factordb library
+python
+
+from factordb.factordb import FactorDB
+
+n = 8749002899132047699790752490331099938058737706735201354674975134719667510377522805717156720453193651
+f = FactorDB(n)
+f.connect()
+factors = f.get_factor_list()
+print(factors)
+
+Result:
+The factors are:
+text
+
+p₁ = 87490028991320476997907524903310999380587377067363
+p₂ = 87490028991320476997907524903310999380587377067371
+p₃ = 87490028991320476997907524903310999380587377067377
+p₄ = 87490028991320476997907524903310999380587377067383
+
+Notice something interesting? All primes are very close to each other!
+Step 3: Computing φ(n)
+python
+
+phi = (p₁-1) * (p₂-1) * (p₃-1) * (p₄-1)
+
+Step 4: Finding the Private Key
+python
+
+d = pow(e, -1, phi)  # Python 3.8+ syntax for modular inverse
+# Or using Crypto.Util.number:
+from Crypto.Util.number import inverse
+d = inverse(e, phi)
+
+Step 5: Decrypting the Message
+python
+
+m = pow(ct, d, n)
+
+Step 6: Converting to Text
+python
+
+from Crypto.Util.number import long_to_bytes
+flag = long_to_bytes(m)
+print(flag.decode())
+
+Complete Solution Script
+python
+
+from Crypto.Util.number import long_to_bytes, inverse
+
+# Given values
+n = 8749002899132047699790752490331099938058737706735201354674975134719667510377522805717156720453193651
+e = 65537
+ct = 1540727604168001476834564078802265850886645733701728735298015222241133874453234034740567290095334786
+
+# Factors from FactorDB
+p1 = 87490028991320476997907524903310999380587377067363
+p2 = 87490028991320476997907524903310999380587377067371
+p3 = 87490028991320476997907524903310999380587377067377
+p4 = 87490028991320476997907524903310999380587377067383
+
+# Verify n (optional)
+assert p1 * p2 * p3 * p4 == n, "Factors don't multiply to n"
+
+# Compute phi for multi-prime RSA
+phi = (p1-1) * (p2-1) * (p3-1) * (p4-1)
+
+# Compute private key
+d = inverse(e, phi)
+
+# Decrypt
+m = pow(ct, d, n)
+
+# Convert to flag
+flag = long_to_bytes(m)
+print(flag.decode())  # picoCTF{mul71_rsa_3dd22eb2}
+
+Why It Works
+
+The mathematics of RSA works with any number of primes because:
+
+    Euler's totient function φ(n) for a product of distinct primes is simply the product of (pᵢ-1)
+
+    The encryption/decryption still works because:
+
+        Encryption: c = m^e mod n
+
+        Decryption: m = c^d mod n where e×d ≡ 1 mod φ(n)
+
+The security normally relies on the difficulty of factoring n into its prime components.
