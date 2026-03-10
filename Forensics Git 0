@@ -1,0 +1,94 @@
+Step 1: Initial Setup and Disk Examination
+
+First, we unzip the provided disk image and examine its structure:
+bash
+
+# Unzip the disk image
+gunzip disk.img.gz
+
+# Check the file type
+file disk.img
+# Output shows it's a DOS/MBR boot sector with 3 partitions
+
+# Examine partition layout
+fdisk -l disk.img
+
+The disk has three partitions:
+
+    Partition 1: Linux filesystem (startsector 2048, 300M)
+
+    Partition 2: Linux swap (startsector 616448, 256M)
+
+    Partition 3: Linux filesystem (startsector 1140736, 467M)
+
+Step 2: Mount the Root Filesystem
+
+We need to mount partition 3, which likely contains the root filesystem:
+bash
+
+# Create mount points
+sudo mkdir -p /mnt/disk1 /mnt/disk3
+
+# First attempt to mount partition 3 fails because partition 1 is mounted
+sudo mount -o loop,offset=$((2048*512)) disk.img /mnt/disk1
+
+# Unmount partition 1
+sudo umount /mnt/disk1
+
+# Mount partition 3 (the root filesystem)
+sudo mount -o loop,offset=$((1140736*512)) disk.img /mnt/disk3
+
+Step 3: Analyze with The Sleuth Kit
+
+Using forensic tools to examine the filesystem:
+bash
+
+# Install sleuthkit if needed
+sudo apt install sleuthkit -y
+
+# List files in partition 3
+fls -o 1140736 disk.img
+
+# Recursively search for Git-related content
+fls -o 1140736 -r disk.img | grep -i git
+
+The output reveals interesting findings:
+
+    A .git directory at inode 65665
+
+    Various Git binaries and related files throughout the system
+
+Step 4: Locate the Git Repository
+
+Search for the actual Git repository on the mounted filesystem:
+bash
+
+# Find all .git directories
+find /mnt/disk3 -name ".git" -type d 2>/dev/null
+
+Output reveals: /mnt/disk3/home/ctf-player/Code/secrets/.git
+Step 5: Explore the Git Repository
+
+Navigate to the repository and examine its history:
+bash
+
+cd /mnt/disk3/home/ctf-player/Code/secrets
+ls -la
+
+View the Git log to see commit history:
+bash
+
+git log --oneline
+
+Sample output might show:
+text
+
+2a9e3a7 (HEAD -> main) Add secret file
+f7b8c9d Initial commit
+
+Examine the latest commit:
+bash
+
+git show
+
+This reveals the flag in the commit message or in the file contents:
