@@ -1,0 +1,105 @@
+Challenge Overview
+
+    Name: DISKO 4
+
+    Description: "Can you find the flag in this disk image? This time I deleted the file!"
+
+    File: disko-4.dd (FAT32 disk image)
+
+    Goal: Recover the deleted file containing the flag
+
+📥 Step 1: Initial Setup
+
+First, let's download and prepare the disk image:
+bash
+
+# Navigate to Downloads directory
+cd ~/Downloads
+
+# Extract the compressed disk image
+gunzip disko-4.dd.gz
+
+# Verify the file type
+file disko-4.dd
+
+Output: disko-4.dd: DOS/MBR boot sector, ... FAT (32 bit)
+🛠️ Step 2: Method 1 - Using fatcat (Quickest Solution)
+
+fatcat is a specialized forensic tool for FAT filesystems that can easily list and recover deleted files.
+Install fatcat (if needed)
+bash
+
+sudo apt update && sudo apt install fatcat -y
+
+List all files including deleted ones
+bash
+
+fatcat disko-4.dd -l / -d
+
+Output shows a directory called log/
+Check contents of the log directory
+bash
+
+fatcat disko-4.dd -l /log -d
+
+Output reveals a deleted file: ?lag.txt (the ? indicates it's deleted)
+Recover the deleted flag file
+bash
+
+fatcat disko-4.dd -r /log/flag.txt > flag.txt
+
+View the recovered flag
+bash
+
+cat flag.txt
+
+Flag: picoCTF{...} (the actual flag will be displayed)
+🔧 Step 3: Method 2 - Using testdisk (Interactive Approach)
+
+If fatcat isn't available, testdisk provides a user-friendly interface for recovery.
+Install testdisk (if needed)
+bash
+
+sudo apt update && sudo apt install testdisk -y
+
+Run testdisk on the disk image
+bash
+
+testdisk disko-4.dd
+
+Navigate through testdisk:
+
+    Select the disk → [Proceed]
+
+    Choose partition table type → [None] (since it's a raw FAT32 filesystem)
+
+    Select filesystem type → [FAT32]
+
+    Choose menu option → [Advanced] → Filesystem Utils
+
+    Select the FAT32 partition → [Undelete]
+
+    Browse directories:
+
+        You'll see a log/ directory
+
+        Press → to enter the log directory
+
+    Find the deleted file:
+
+        Inside log, you'll see ?lag.txt (the ? shows it's deleted)
+
+        Navigate to it using arrow keys
+
+        Press c to copy/recover the file
+
+        Choose destination (current directory)
+
+        Press C to confirm
+
+    Exit testdisk → Press q multiple times
+
+View the recovered flag
+bash
+
+cat flag.txt
